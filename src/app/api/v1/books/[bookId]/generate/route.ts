@@ -186,6 +186,7 @@ export async function POST(
   }
 
   // Direct processing fallback: process each job inline
+  const jobErrors: { jobId: string; error: string }[] = [];
   if (!inngestOk) {
     for (const job of createdJobs) {
       try {
@@ -193,28 +194,30 @@ export async function POST(
         await processChapter(job.jobId);
         console.log(`[generate] Job ${job.jobId} completed.`);
       } catch (err: any) {
-        console.error(`[generate] Job ${job.jobId} failed:`, err?.message ?? err);
+        const msg = err?.message ?? String(err);
+        console.error(`[generate] Job ${job.jobId} failed:`, msg);
+        jobErrors.push({ jobId: job.jobId, error: msg });
       }
     }
 
-    // Check if all chapters are done to update book status
+    // Update book status based on results
     const allJobs = await db
-      .select({ status: audioJobs.status })
+      .select({ status: audioJobs.status, errorMessage: audioJobs.errorMessage })
       .from(audioJobs)
       .where(inArray(audioJobs.chapterId, createdJobs.map((j) => j.chapterId)));
     const allDone = allJobs.length > 0 && allJobs.every((j) => j.status === 'done');
-    if (allDone) {
-      await db
-        .update(books)
-        .set({ status: 'ready', updatedAt: new Date() })
-        .where(eq(books.id, bookId));
-    }
+    const anyDone = allJobs.some((j) => j.status === 'done');
+    await db
+      .update(books)
+      .set({ status: allDone ? 'ready' : anyDone ? 'processing' : 'failed', updatedAt: new Date() })
+      .where(eq(books.id, bookId));
   }
 
   return NextResponse.json(
     {
-      message: inngestOk ? 'Generation queued.' : 'Generation complete.',
+      message: inngestOk ? 'Generation queued.' : jobErrors.length === 0 ? 'Generation complete.' : 'Generation failed.',
       jobs: createdJobs,
+      errors: jobErrors.length > 0 ? jobErrors : undefined,
       totalJobs: createdJobs.length,
       directProcessing: !inngestOk,
     },

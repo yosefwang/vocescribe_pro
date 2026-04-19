@@ -164,8 +164,25 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice: selectedVoice }),
       });
-      if (!res.ok) throw new Error();
-      startPolling();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setGenerating(false);
+        alert(data.error?.message || 'Failed to start generation.');
+        return;
+      }
+      if (data.directProcessing) {
+        const refreshRes = await fetch(`/api/v1/books/${id}`);
+        const refreshData = await refreshRes.json();
+        setBook(refreshData.book ?? refreshData);
+        setChapters(refreshData.chapters ?? []);
+        setGenerating(false);
+        if (data.errors?.length > 0) {
+          const errMsg = data.errors.map((e: any) => e.error).join('\n');
+          alert(`Generation failed:\n${errMsg}`);
+        }
+      } else {
+        startPolling();
+      }
     } catch {
       setGenerating(false);
       alert('Failed to start generation. Please try again.');
@@ -189,8 +206,9 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
         const refreshData = await refreshRes.json();
         setBook(refreshData.book ?? refreshData);
         setChapters(refreshData.chapters ?? []);
-        if (data.jobs?.some((j: any) => j.status === 'failed')) {
-          alert('Generation failed. Check that OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_TTS_MODEL are set in Vercel env vars.');
+        if (data.errors?.length > 0) {
+          const errMsg = data.errors.map((e: any) => e.error).join('\n');
+          alert(`Generation failed:\n${errMsg}`);
         }
       } else {
         startPolling();

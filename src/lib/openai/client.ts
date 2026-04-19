@@ -1,11 +1,21 @@
 import OpenAI from 'openai';
 
+// Chat client — uses OPENAI_CHAT_BASE_URL if set, falls back to OPENAI_BASE_URL, then OpenAI default
+const chatBaseURL = process.env.OPENAI_CHAT_BASE_URL || process.env.OPENAI_BASE_URL || undefined;
 export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'placeholder',
-  baseURL: process.env.OPENAI_BASE_URL || undefined,
+  baseURL: chatBaseURL,
 });
 
-const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o';
+// TTS client — uses OPENAI_TTS_BASE_URL if set, falls back to OPENAI_BASE_URL, then OpenAI default
+// For Gemini: set OPENAI_TTS_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+const ttsBaseURL = process.env.OPENAI_TTS_BASE_URL || process.env.OPENAI_BASE_URL || undefined;
+export const ttsClient = new OpenAI({
+  apiKey: process.env.OPENAI_TTS_API_KEY || process.env.OPENAI_API_KEY || 'placeholder',
+  baseURL: ttsBaseURL,
+});
+
+const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL ?? process.env.OPENAI_MODEL ?? 'gpt-4o';
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts';
 
 const CLEANUP_SYSTEM_PROMPT = `You are a text preparation assistant for TTS.
@@ -35,6 +45,7 @@ interface CleanupResult {
 }
 
 export async function cleanupChapterText(rawText: string): Promise<CleanupResult> {
+  console.log(`[cleanup] Using model=${CHAT_MODEL} baseURL=${chatBaseURL ?? 'default'}`);
   const resp = await openai.chat.completions.create({
     model: CHAT_MODEL,
     messages: [
@@ -51,13 +62,18 @@ export async function cleanupChapterText(rawText: string): Promise<CleanupResult
 }
 
 export async function generateTtsChunk(text: string, voice: string): Promise<{ mp3Buffer: Buffer }> {
-  const resp = await openai.audio.speech.create({
+  // Gemini OpenAI-compatible TTS requires lowercase voice names
+  const voiceName = voice.toLowerCase() as OpenAI.Audio.SpeechCreateParams['voice'];
+  console.log(`[tts] model=${TTS_MODEL} voice=${voiceName} baseURL=${ttsBaseURL ?? 'default'} textLen=${text.length}`);
+
+  const resp = await ttsClient.audio.speech.create({
     model: TTS_MODEL,
-    voice: voice as OpenAI.Audio.SpeechCreateParams['voice'],
+    voice: voiceName,
     input: text,
     response_format: 'mp3',
   });
 
   const mp3Buffer = Buffer.from(await resp.arrayBuffer());
+  console.log(`[tts] received ${mp3Buffer.length} bytes`);
   return { mp3Buffer };
 }
