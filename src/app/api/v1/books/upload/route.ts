@@ -86,6 +86,7 @@ export async function POST(req: Request) {
   try {
     await uploadObject(epubR2Key, buffer, 'application/epub+zip');
   } catch (err) {
+    console.error('R2 upload error:', err);
     return NextResponse.json(
       { error: { code: 'STORAGE_ERROR', message: 'Failed to upload file to storage.' } },
       { status: 500 },
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
   try {
     parseResult = await parseEpub(tmpFilePath, userId, bookId);
   } catch (err) {
+    console.error('EPUB parse error:', err);
     return NextResponse.json(
       { error: { code: 'PARSE_ERROR', message: `Failed to parse EPUB: ${(err as Error).message}` } },
       { status: 422 },
@@ -153,6 +155,7 @@ export async function POST(req: Request) {
       }
     });
   } catch (err) {
+    console.error('DB transaction error:', err);
     return NextResponse.json(
       { error: { code: 'DB_ERROR', message: 'Failed to save book to database.' } },
       { status: 500 },
