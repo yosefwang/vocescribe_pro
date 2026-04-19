@@ -385,14 +385,14 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                       borderBottom: '1px solid var(--rule)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Link href={`/player/${book.id}/${ch.chapterNumber}`} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
                       <span className="mono" style={{ fontSize: 11, color: 'var(--ink-4)', width: 24, textAlign: 'right' }}>
                         {ch.chapterNumber}
                       </span>
                       <span className="serif" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
                         {ch.title || `Chapter ${ch.chapterNumber}`}
                       </span>
-                    </div>
+                    </Link>
                     <span className="meta">{formatDuration(ch.latestJob?.durationSec ?? null)}</span>
                     {ch.audioStatus === 'done' ? (
                       <Link href={`/player/${book.id}/${ch.chapterNumber}`} className="btn sm ghost">
@@ -537,14 +537,14 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                   borderBottom: '1px solid var(--rule)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <Link href={`/player/${book.id}/${ch.chapterNumber}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
                   <span className="mono" style={{ fontSize: 11, color: 'var(--ink-4)', width: 20 }}>
                     {ch.chapterNumber}
                   </span>
                   <span className="serif" style={{ fontSize: 13, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {ch.title || `Chapter ${ch.chapterNumber}`}
                   </span>
-                </div>
+                </Link>
                 {ch.audioStatus === 'done' ? (
                   <Link href={`/player/${book.id}/${ch.chapterNumber}`} className="btn sm ghost">
                     Play
