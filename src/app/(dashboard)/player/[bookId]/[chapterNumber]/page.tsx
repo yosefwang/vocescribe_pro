@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, use } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -111,9 +111,12 @@ export default function PlayerPage({
 }: {
   params: Promise<{ bookId: string; chapterNumber: string }>;
 }) {
-  const { bookId, chapterNumber } = use(params);
   const router = useRouter();
+  const [bookId, setBookId] = useState('');
+  const [chapterNumber, setChapterNumber] = useState('');
   const chNum = parseInt(chapterNumber, 10);
+
+  useEffect(() => { params.then((p) => { setBookId(p.bookId); setChapterNumber(p.chapterNumber); }); }, [params]);
 
   const [book, setBook] = useState<BookInfo | null>(null);
   const [chapter, setChapter] = useState<ChapterInfo | null>(null);
@@ -134,6 +137,7 @@ export default function PlayerPage({
 
   /* Fetch data */
   useEffect(() => {
+    if (!bookId || !chapterNumber) return;
     async function load() {
       try {
         const [bookRes, chaptersRes] = await Promise.all([
@@ -173,7 +177,7 @@ export default function PlayerPage({
       }
     }
     load();
-  }, [bookId, chNum]);
+  }, [bookId, chapterNumber]);
 
   /* Load saved playback position */
   useEffect(() => {

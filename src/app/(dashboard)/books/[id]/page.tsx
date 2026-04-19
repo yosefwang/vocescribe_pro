@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -89,8 +89,10 @@ function formatDate(iso: string): string {
 /*  Page component                                                     */
 /* ------------------------------------------------------------------ */
 export default function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
   const router = useRouter();
+  const [id, setId] = useState<string>('');
+
+  useEffect(() => { params.then((p) => setId(p.id)); }, [params]);
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -101,6 +103,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
 
   /* Fetch book data */
   useEffect(() => {
+    if (!id) return;
     async function load() {
       try {
         const [bookRes, chaptersRes] = await Promise.all([
