@@ -113,18 +113,11 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
     if (!id) return;
     async function load() {
       try {
-        const [bookRes, chaptersRes] = await Promise.all([
-          fetch(`/api/v1/books/${id}`),
-          fetch(`/api/v1/books/${id}/chapters`),
-        ]);
-        if (!bookRes.ok) throw new Error('Book not found');
-        const bookData = await bookRes.json();
-        const chaptersData = await chaptersRes.json();
-        setBook(bookData.book ?? bookData);
-        setChapters(chaptersData.chapters ?? []);
-        if (bookData.voice || (bookData.book && bookData.book.voice)) {
-          setSelectedVoice((bookData.voice || bookData.book.voice) ?? 'Kore');
-        }
+        const res = await fetch(`/api/v1/books/${id}`);
+        if (!res.ok) throw new Error('Book not found');
+        const data = await res.json();
+        setBook(data.book ?? data);
+        setChapters(data.chapters ?? []);
       } catch {
         /* book not found */
       } finally {
@@ -144,15 +137,11 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
   const startPolling = () => {
     const timer = setInterval(async () => {
       try {
-        const [bookRes, chaptersRes] = await Promise.all([
-          fetch(`/api/v1/books/${id}`),
-          fetch(`/api/v1/books/${id}/chapters`),
-        ]);
-        const bookData = await bookRes.json();
-        const chaptersData = await chaptersRes.json();
-        const b = bookData.book ?? bookData;
+        const res = await fetch(`/api/v1/books/${id}`);
+        const data = await res.json();
+        const b = data.book ?? data;
         setBook(b);
-        setChapters(chaptersData.chapters ?? []);
+        setChapters(data.chapters ?? []);
 
         if (b.status === 'ready' || b.status === 'uploaded' || b.status === 'failed') {
           clearInterval(timer);
@@ -195,13 +184,11 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
       if (!res.ok) {
         alert(data.error?.message || 'Failed to generate chapter.');
       } else if (data.directProcessing) {
-        // Direct processing finished — refresh chapter list to see result
-        const chaptersRes = await fetch(`/api/v1/books/${id}/chapters`);
-        const chaptersData = await chaptersRes.json();
-        setChapters(chaptersData.chapters ?? []);
-        const bookRes = await fetch(`/api/v1/books/${id}`);
-        const bookData = await bookRes.json();
-        setBook(bookData.book ?? bookData);
+        // Direct processing finished — refresh to see result
+        const refreshRes = await fetch(`/api/v1/books/${id}`);
+        const refreshData = await refreshRes.json();
+        setBook(refreshData.book ?? refreshData);
+        setChapters(refreshData.chapters ?? []);
         if (data.jobs?.some((j: any) => j.status === 'failed')) {
           alert('Generation failed. Check that OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_TTS_MODEL are set in Vercel env vars.');
         }

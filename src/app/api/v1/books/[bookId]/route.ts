@@ -86,8 +86,12 @@ export async function GET(
     }
   }
 
+  const completedChapters = Array.from(chaptersMap.values()).filter(
+    (ch) => ch.latestJob?.status === 'done',
+  ).length;
+
   return NextResponse.json({
-    book,
+    book: { ...book, completedChapters },
     chapters: Array.from(chaptersMap.values()),
   });
 }
