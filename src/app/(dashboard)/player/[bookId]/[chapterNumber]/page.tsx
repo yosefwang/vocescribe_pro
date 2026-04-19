@@ -126,6 +126,8 @@ export default function PlayerPage({
   const [chapter, setChapter] = useState<ChapterInfo | null>(null);
   const [sentences, setSentences] = useState<AlignmentSentence[]>([]);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [fullText, setFullText] = useState<string>('');
+  const [chapterSentences, setChapterSentences] = useState<{ text: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -155,10 +157,12 @@ export default function PlayerPage({
         const ch = chList.find((c) => c.chapterNumber === chNum);
         if (ch) setChapter(ch);
 
-        // Fetch audio stream URL
-        const audioIdRes = await fetch(`/api/v1/books/${bookId}/chapters/${chNum}`);
-        const audioIdData = await audioIdRes.json();
-        const audioId = audioIdData.audioJob?.id;
+        // Fetch chapter detail (text + audio job)
+        const chapterDetailRes = await fetch(`/api/v1/books/${bookId}/chapters/${chNum}`);
+        const chapterDetail = await chapterDetailRes.json();
+        setFullText(chapterDetail.chapter?.fullText ?? '');
+        setChapterSentences(chapterDetail.chapter?.sentences ?? []);
+        const audioId = chapterDetail.audioJob?.id;
 
         if (audioId) {
           const [streamRes, alignRes] = await Promise.all([
@@ -371,9 +375,19 @@ export default function PlayerPage({
                   {s.text}{' '}
                 </span>
               ))
+            ) : chapterSentences.length > 0 ? (
+              chapterSentences.map((s, i) => (
+                <span key={i} className="sent" style={{ cursor: 'default' }}>
+                  {s.text}{' '}
+                </span>
+              ))
+            ) : fullText ? (
+              <p style={{ color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                {fullText}
+              </p>
             ) : (
               <p style={{ color: 'var(--ink-3)', textAlign: 'center' }}>
-                No alignment data available for this chapter.
+                No text available for this chapter.
               </p>
             )}
           </div>
@@ -513,9 +527,19 @@ export default function PlayerPage({
                 {s.text}{' '}
               </span>
             ))
+          ) : chapterSentences.length > 0 ? (
+            chapterSentences.map((s, i) => (
+              <span key={i} className="sent" style={{ cursor: 'default' }}>
+                {s.text}{' '}
+              </span>
+            ))
+          ) : fullText ? (
+            <p style={{ color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+              {fullText}
+            </p>
           ) : (
             <p style={{ color: 'var(--ink-3)', textAlign: 'center' }}>
-              No alignment data available.
+              No text available.
             </p>
           )}
         </div>
