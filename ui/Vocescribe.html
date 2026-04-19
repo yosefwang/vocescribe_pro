@@ -1,0 +1,1418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vocescribe — Audiobook Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F5F0E6;
+  --paper-2: #EFE8DA;
+  --paper-3: #E6DDC9;
+  --ink: #1A1613;
+  --ink-2: #3A332C;
+  --ink-3: #6B6056;
+  --ink-4: #9A8F83;
+  --rule: #1A161320;
+  --gold: #A8732F;
+  --gold-soft: #C69A5A;
+  --marker: #B8894A;
+  --red: #A8452F;
+  --green: #5C7A3F;
+
+  --font-serif: "Newsreader", "Sectra", Georgia, serif;
+  --font-sans: "Inter Tight", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+
+  --reading-size: 22px;
+  --reading-lh: 1.55;
+  --density: 1;
+
+  --hl-mode: word; /* word | sentence */
+}
+html[data-theme="dark"] {
+  --paper: #14110D;
+  --paper-2: #1C1814;
+  --paper-3: #25201A;
+  --ink: #EDE6D8;
+  --ink-2: #C9C0AE;
+  --ink-3: #948A7A;
+  --ink-4: #635B4E;
+  --rule: #EDE6D825;
+  --gold: #D4A15F;
+  --gold-soft: #B8894A;
+  --marker: #D4A15F;
+}
+
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* paper texture */
+.paper-tex {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse at top, #00000006, transparent 60%),
+    repeating-linear-gradient(0deg, #00000003 0 1px, transparent 1px 3px);
+}
+html[data-theme="dark"] .paper-tex {
+  background-image:
+    radial-gradient(ellipse at top, #ffffff04, transparent 60%),
+    repeating-linear-gradient(0deg, #ffffff02 0 1px, transparent 1px 3px);
+}
+
+.hair { border: 0; border-top: 1px solid var(--rule); }
+.vr  { border-left: 1px solid var(--rule); }
+
+/* Typography classes */
+.serif   { font-family: var(--font-serif); }
+.sans    { font-family: var(--font-sans); }
+.mono    { font-family: var(--font-mono); }
+.display { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; font-variation-settings: "opsz" 60; }
+.eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.meta    { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em; color: var(--ink-3); }
+.num     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Buttons */
+.btn { font-family: var(--font-sans); font-weight: 500; font-size: 13px; padding: 9px 14px; border-radius: 2px; border: 1px solid var(--rule); background: transparent; color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .12s ease; letter-spacing: 0.01em; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.primary:hover { background: var(--ink-2); }
+.btn.gold { background: var(--gold); color: #fff; border-color: var(--gold); }
+.btn.gold:hover { background: var(--marker); }
+.btn.ghost { border-color: transparent; }
+.btn.ghost:hover { border-color: var(--rule); }
+.btn.sm { padding: 6px 10px; font-size: 12px; }
+.btn.xl { padding: 14px 22px; font-size: 14px; }
+.btn.icon { padding: 8px; }
+
+/* Icon */
+.icn { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.icn.sm { width: 13px; height: 13px; }
+.icn.lg { width: 22px; height: 22px; }
+.icn.xl { width: 28px; height: 28px; }
+
+/* Chrome */
+#app { position: relative; min-height: 100vh; }
+
+/* Rail */
+.rail {
+  position: fixed; top:0; bottom:0; left:0; width: 72px;
+  background: var(--paper-2);
+  border-right: 1px solid var(--rule);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 18px 0 100px; gap: 4px;
+  z-index: 40;
+}
+.rail .mark { font-family: var(--font-serif); font-size: 28px; line-height: 1; margin-bottom: 22px; color: var(--ink); font-style: italic; font-variation-settings: "opsz" 60; }
+.rail button.nav {
+  width: 42px; height: 42px; border-radius: 2px; border: 0; background: transparent;
+  color: var(--ink-3); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  position: relative;
+}
+.rail button.nav:hover { color: var(--ink); background: var(--paper-3); }
+.rail button.nav.active { color: var(--ink); }
+.rail button.nav.active::before {
+  content: ""; position: absolute; left: -15px; top: 10px; bottom: 10px; width: 2px; background: var(--marker);
+}
+.rail .spacer { flex: 1; }
+.rail .me { width: 34px; height: 34px; border-radius: 50%; background: var(--gold); color: #fff; font-family: var(--font-sans); font-size: 12px; font-weight: 600; display: grid; place-items: center; margin-top: 8px; }
+
+/* Main */
+.main { margin-left: 72px; padding-bottom: 110px; }
+
+/* Top bar */
+.topbar { display: flex; align-items: center; gap: 14px; padding: 22px 36px 16px; }
+.search { flex: 1; display: flex; align-items: center; gap: 10px; border: 1px solid var(--rule); padding: 10px 14px; background: var(--paper-2); border-radius: 2px; color: var(--ink-3); }
+.search input { border: 0; background: transparent; color: var(--ink); font-family: var(--font-sans); font-size: 13px; flex: 1; outline: none; }
+.search input::placeholder { color: var(--ink-4); }
+.search .kbd { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); border: 1px solid var(--rule); padding: 1px 6px; border-radius: 2px; }
+
+/* Screen containers */
+.screen { display: none; animation: fadein .25s ease both; }
+.screen.active { display: block; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ========== LIBRARY ========== */
+.page-h { padding: 0 36px 24px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.page-h h1 { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 56px; line-height: 0.95; letter-spacing: -0.025em; font-variation-settings: "opsz" 72; }
+.page-h h1 em { font-style: italic; color: var(--ink-3); }
+.page-h .sub { color: var(--ink-3); font-size: 13px; max-width: 340px; line-height: 1.5; }
+
+/* Continue hero */
+.continue {
+  margin: 0 36px 40px;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  display: grid; grid-template-columns: 200px 1fr 280px; gap: 0;
+  position: relative; overflow: hidden;
+}
+.continue .cover-wrap { padding: 22px; border-right: 1px solid var(--rule); display: grid; place-items: center; background: var(--paper-3); }
+.continue .cover { width: 156px; height: 228px; box-shadow: 0 10px 28px -14px #00000055; position: relative; }
+.continue .cover .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: rgba(0,0,0,.18); }
+.continue .body { padding: 28px 32px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+.continue .eye { display: flex; gap: 14px; align-items: center; }
+.continue .eye::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.continue .t { font-family: var(--font-serif); font-size: 38px; line-height: 1; font-weight: 400; letter-spacing: -0.02em; }
+.continue .t em { font-style: italic; color: var(--ink-3); }
+.continue .by { color: var(--ink-3); font-size: 13px; }
+.continue .line { display: flex; gap: 24px; align-items: center; margin-top: 6px; }
+.continue .prog { flex: 1; height: 3px; background: var(--paper-3); position: relative; border-radius: 2px; }
+.continue .prog .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 38%; background: var(--marker); }
+.continue .actions { border-left: 1px solid var(--rule); padding: 28px; display: flex; flex-direction: column; gap: 10px; justify-content: center; background: var(--paper); }
+.continue .actions .resume { display: flex; align-items: center; gap: 14px; }
+.continue .play-big { width: 56px; height: 56px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; border: 0; cursor: pointer; flex-shrink: 0; }
+.continue .play-big:hover { background: var(--gold); }
+.continue .where { display: flex; flex-direction: column; gap: 2px; }
+.continue .where .ch { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.continue .where .st { font-family: var(--font-serif); font-size: 15px; font-style: italic; color: var(--ink-2); line-height: 1.3; }
+
+/* Library shelves */
+.shelf { padding: 0 36px; margin-bottom: 44px; }
+.shelf .h { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.shelf .h h2 { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 22px; letter-spacing: -0.01em; }
+.shelf .h h2 em { color: var(--ink-3); font-style: italic; }
+.shelf .h .count { color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; }
+.shelf .sort { display: flex; gap: 14px; align-items: center; }
+.shelf .sort span { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); cursor: pointer; }
+.shelf .sort span.on { color: var(--ink); border-bottom: 1px solid var(--marker); padding-bottom: 2px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 28px 22px; }
+.card { cursor: pointer; display: flex; flex-direction: column; gap: 10px; }
+.card .cover { aspect-ratio: 2/3; position: relative; box-shadow: 0 6px 20px -10px #0006; overflow: hidden; transition: transform .2s ease; }
+.card:hover .cover { transform: translateY(-4px); }
+.card .cover .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: rgba(0,0,0,.2); }
+.card .cover .badge { position: absolute; top: 8px; right: 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 6px; background: #00000099; color: #fff; border-radius: 1px; }
+.card .cover .badge.gen { background: var(--marker); }
+.card .cover .badge.new { background: var(--ink); }
+.card .meta-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.card .t { font-family: var(--font-serif); font-size: 15px; line-height: 1.2; font-weight: 500; }
+.card .a { color: var(--ink-3); font-size: 11.5px; font-family: var(--font-sans); }
+.card .dur { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+.card .bar { height: 2px; background: var(--paper-3); margin-top: 2px; }
+.card .bar .f { height: 100%; background: var(--marker); }
+
+/* Covers (generated SVG-like) */
+.cov { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 14px 16px 18px; color: #fff; font-family: var(--font-serif); overflow: hidden; }
+.cov::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 4px, #00000010 4px 5px);
+  pointer-events: none;
+}
+.cov .t { font-size: 15px; line-height: 1.05; letter-spacing: -0.01em; font-weight: 400; z-index: 1; }
+.cov .a { font-family: var(--font-sans); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.15em; opacity: .75; z-index: 1; }
+.cov .orn { position: absolute; left: 18px; right: 14px; top: 50%; height: 1px; background: currentColor; opacity: .35; transform: translateY(-10px); }
+.cov .mark { position: absolute; right: 12px; top: 12px; font-family: var(--font-mono); font-size: 8.5px; opacity: .6; letter-spacing: .1em; }
+
+/* ========== BOOK DETAIL ========== */
+.bd { display: grid; grid-template-columns: 340px 1fr; gap: 48px; padding: 8px 36px 40px; }
+.bd .left { position: sticky; top: 22px; align-self: start; display: flex; flex-direction: column; gap: 20px; }
+.bd .bigcover { width: 280px; aspect-ratio: 2/3; box-shadow: 0 30px 60px -30px #00000088; position: relative; }
+.bd .bigcover .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: rgba(0,0,0,.2); }
+.bd .left .facts { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); line-height: 2; width: 280px; }
+.bd .left .facts .row { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--rule); }
+.bd .left .facts .row span:last-child { color: var(--ink); }
+
+.bd .right { min-width: 0; }
+.bd .right .crumb { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; }
+.bd .right .crumb a { color: var(--ink-3); cursor: pointer; }
+.bd .right .crumb a:hover { color: var(--ink); }
+.bd .right h1 { margin: 0 0 6px; font-family: var(--font-serif); font-weight: 300; font-size: 68px; line-height: .98; letter-spacing: -0.03em; font-variation-settings: "opsz" 72; }
+.bd .right h1 em { font-style: italic; color: var(--gold); font-weight: 300; }
+.bd .right .au { font-family: var(--font-serif); font-style: italic; font-size: 22px; color: var(--ink-2); margin-bottom: 18px; }
+.bd .right .lede { font-family: var(--font-serif); font-size: 18px; line-height: 1.55; color: var(--ink-2); max-width: 620px; margin-bottom: 22px; font-weight: 300; }
+.bd .right .lede:first-letter { font-size: 48px; float: left; line-height: .9; padding: 4px 8px 0 0; font-weight: 400; color: var(--ink); }
+
+.gen-panel {
+  border: 1px solid var(--rule); background: var(--paper-2); padding: 22px 24px; margin: 22px 0 28px;
+  display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: center;
+}
+.gen-panel .left { display: flex; flex-direction: column; gap: 14px; }
+.gen-panel .eye { display: flex; gap: 12px; align-items: center; }
+.gen-panel h3 { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 20px; letter-spacing: -0.01em; }
+.gen-panel .voices { display: flex; gap: 6px; flex-wrap: wrap; }
+.voice-chip { padding: 5px 10px; font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--rule); background: var(--paper); cursor: pointer; letter-spacing: 0.04em; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.voice-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--marker); }
+.voice-chip:hover { border-color: var(--ink); }
+.voice-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.voice-chip.active .dot { background: var(--paper); }
+
+.chapters-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chapters-table th { text-align: left; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); font-weight: 400; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.chapters-table td { padding: 12px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.chapters-table tr { cursor: pointer; transition: background .1s; }
+.chapters-table tbody tr:hover { background: var(--paper-2); }
+.chapters-table .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); width: 40px; font-variant-numeric: tabular-nums; }
+.chapters-table .ct { font-family: var(--font-serif); font-size: 15px; line-height: 1.2; }
+.chapters-table .ct em { font-style: italic; color: var(--ink-3); }
+.chapters-table .wc { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); text-align: right; width: 80px; }
+.chapters-table .dur { font-family: var(--font-mono); font-size: 11px; text-align: right; width: 70px; color: var(--ink-2); }
+.chapters-table .st { width: 110px; }
+.chapters-table .plybtn { width: 28px; height: 28px; border-radius: 50%; background: transparent; border: 1px solid var(--rule); display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+.chapters-table tr:hover .plybtn { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.chapters-table tr.playing .plybtn { background: var(--gold); color: #fff; border-color: var(--gold); }
+.chapters-table tr.playing .ct { color: var(--gold); }
+
+.st-pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border: 1px solid var(--rule); color: var(--ink-3); }
+.st-pill .d { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-4); }
+.st-pill.done { color: var(--green); border-color: #5C7A3F40; }
+.st-pill.done .d { background: var(--green); }
+.st-pill.running { color: var(--gold); border-color: #A8732F40; }
+.st-pill.running .d { background: var(--gold); animation: pulse 1.3s infinite; }
+.st-pill.queued { color: var(--ink-3); }
+.st-pill.failed { color: var(--red); border-color: #A8452F40; }
+.st-pill.failed .d { background: var(--red); }
+
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+
+.prog-cell { height: 3px; background: var(--paper-3); position: relative; border-radius: 2px; min-width: 90px; }
+.prog-cell .f { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gold); }
+
+/* ========== PLAYER ========== */
+.player-page { padding: 0; }
+.player-page .bar {
+  padding: 20px 36px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+}
+.player-page .bar .nowplaying { display: flex; align-items: center; gap: 14px; }
+.player-page .bar .mini-cov { width: 44px; height: 64px; box-shadow: 0 4px 12px -4px #0006; }
+.player-page .bar .np-meta { display: flex; flex-direction: column; gap: 2px; }
+.player-page .bar .np-meta .ch { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.player-page .bar .np-meta .tt { font-family: var(--font-serif); font-size: 17px; line-height: 1.1; }
+.player-page .bar .np-meta .au { font-size: 11.5px; color: var(--ink-3); }
+
+.reading-frame {
+  max-width: 760px;
+  margin: 60px auto 180px;
+  padding: 0 40px;
+  font-family: var(--font-serif);
+  font-size: var(--reading-size);
+  line-height: var(--reading-lh);
+  color: var(--ink-2);
+  font-variation-settings: "opsz" 16;
+}
+.reading-frame .chapter-head { text-align: center; margin-bottom: 60px; }
+.reading-frame .chapter-head .eye { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+.reading-frame .chapter-head h2 { font-family: var(--font-serif); font-weight: 300; font-size: 42px; letter-spacing: -0.02em; margin: 0 0 4px; font-style: italic; font-variation-settings: "opsz" 72; }
+.reading-frame .chapter-head .orn { font-size: 18px; color: var(--ink-3); letter-spacing: 8px; margin-top: 22px; }
+
+.para { margin: 0 0 1.4em; text-wrap: pretty; text-indent: 2em; }
+.para:first-of-type { text-indent: 0; }
+.para:first-of-type::first-letter { font-family: var(--font-serif); font-size: 3.4em; line-height: 0.92; float: left; padding: 0.08em 0.12em 0 0; color: var(--ink); font-weight: 400; font-style: normal; }
+
+/* Sentence + word sync */
+.sent { transition: color .2s ease, opacity .2s ease; display: inline; color: var(--ink-4); cursor: pointer; }
+.sent:hover { color: var(--ink-2); }
+.sent.played { color: var(--ink-3); }
+.sent.active { color: var(--ink); }
+.sent.active .word .wipe { width: 100%; }
+
+/* Sentence-block mode: block highlight, neighbors dim */
+html[data-hl="sentence"] .sent { opacity: .35; }
+html[data-hl="sentence"] .sent.active { opacity: 1; background: linear-gradient(180deg, transparent 62%, var(--marker) 62%, var(--marker) 92%, transparent 92%); padding: 0 2px; margin: 0 -2px; color: var(--ink); }
+html[data-hl="sentence"] .sent.active .word .wipe { display: none; }
+
+/* Word wipe mode */
+html[data-hl="word"] .sent.active { color: var(--ink-4); }
+.word { position: relative; display: inline-block; }
+.word .base { color: inherit; }
+.word .wipe { position: absolute; left: 0; top: 0; height: 100%; width: 0; overflow: hidden; color: var(--ink); white-space: nowrap; transition: width .28s cubic-bezier(.4,0,.2,1); }
+html[data-theme="dark"] .word .wipe { color: var(--ink); }
+html[data-hl="word"] .sent.active .word.played .wipe { width: 100%; }
+html[data-hl="word"] .sent.active .word.current .wipe { color: var(--gold); }
+
+/* Mini player (bottom) */
+.mini {
+  position: fixed; left: 72px; right: 0; bottom: 0; z-index: 50;
+  background: var(--paper-2);
+  border-top: 1px solid var(--rule);
+  padding: 10px 24px;
+  display: grid; grid-template-columns: 1fr 440px 1fr; align-items: center; gap: 20px;
+  backdrop-filter: blur(12px);
+}
+.mini .np { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mini .np .c { width: 40px; height: 58px; box-shadow: 0 2px 8px -2px #0006; flex-shrink: 0; }
+.mini .np .info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mini .np .info .t { font-family: var(--font-serif); font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .np .info .s { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .center { display: flex; flex-direction: column; gap: 6px; }
+.mini .transport { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.mini .iconbtn { width: 32px; height: 32px; border-radius: 2px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; display: grid; place-items: center; }
+.mini .iconbtn:hover { color: var(--ink); background: var(--paper-3); }
+.mini .play { width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--paper); }
+.mini .play:hover { background: var(--gold); color: #fff; }
+.mini .scrub { display: flex; align-items: center; gap: 10px; }
+.mini .scrub .t { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); min-width: 40px; font-variant-numeric: tabular-nums; }
+.mini .scrub .t.r { text-align: right; }
+.mini .scrub .track { flex: 1; height: 3px; background: var(--paper-3); position: relative; border-radius: 2px; cursor: pointer; }
+.mini .scrub .track .fill { position: absolute; left:0; top:0; bottom: 0; background: var(--ink); border-radius: 2px; }
+.mini .scrub .track .knob { position: absolute; top: 50%; width: 10px; height: 10px; background: var(--ink); border-radius: 50%; transform: translate(-50%, -50%); }
+.mini .right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.mini .speed { font-family: var(--font-mono); font-size: 11px; padding: 4px 8px; border: 1px solid var(--rule); cursor: pointer; color: var(--ink-2); }
+.mini .speed:hover { border-color: var(--ink); }
+.mini .expand { width: 32px; height: 32px; border-radius: 2px; border: 1px solid var(--rule); background: transparent; color: var(--ink-2); cursor: pointer; display: grid; place-items: center; }
+.mini .expand:hover { border-color: var(--ink); color: var(--ink); }
+
+/* ========== FULLSCREEN PLAYER ========== */
+.fsp {
+  position: fixed; inset: 0; z-index: 80;
+  background: var(--paper);
+  display: none;
+  flex-direction: column;
+  animation: slideup .35s ease both;
+}
+.fsp.on { display: flex; }
+@keyframes slideup { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.fsp .fsp-bar { display: flex; align-items: center; justify-content: space-between; padding: 22px 36px; border-bottom: 1px solid var(--rule); }
+.fsp .fsp-bar .l { display: flex; align-items: center; gap: 14px; }
+.fsp .fsp-bar .title-wrap { display: flex; flex-direction: column; gap: 2px; }
+.fsp .fsp-bar .title-wrap .t { font-family: var(--font-serif); font-size: 18px; }
+.fsp .fsp-bar .title-wrap .s { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; }
+.fsp .body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+}
+.fsp .reading-col { overflow-y: auto; padding: 40px 0 140px; position: relative; }
+.fsp .sidebar-col { border-left: 1px solid var(--rule); background: var(--paper-2); padding: 24px 22px 140px; overflow-y: auto; }
+.fsp .sidebar-col h4 { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; font-weight: 400; }
+.fsp .chap-list { list-style: none; padding: 0; margin: 0 0 28px; }
+.fsp .chap-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px dashed var(--rule); cursor: pointer; font-size: 13px; }
+.fsp .chap-list li:hover { background: var(--paper-3); }
+.fsp .chap-list li.on { background: var(--paper-3); }
+.fsp .chap-list li .n { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); width: 24px; }
+.fsp .chap-list li .ct { font-family: var(--font-serif); flex: 1; line-height: 1.2; }
+.fsp .chap-list li.on .ct { color: var(--gold); font-style: italic; }
+.fsp .chap-list li .d { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+.fsp .chap-list li.done .d::before { content: "✓ "; color: var(--green); }
+
+.fsp .fsp-controls {
+  position: absolute; left: 0; right: 340px; bottom: 0;
+  background: linear-gradient(180deg, transparent, var(--paper) 30%);
+  padding: 40px 60px 28px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.fsp .fsp-controls .tr { display: flex; align-items: center; justify-content: center; gap: 22px; }
+.fsp .fsp-controls .big-play { width: 62px; height: 62px; border-radius: 50%; background: var(--ink); color: var(--paper); border: 0; display: grid; place-items: center; cursor: pointer; }
+.fsp .fsp-controls .big-play:hover { background: var(--gold); color: #fff; }
+.fsp .fsp-controls .iconbtn { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; display: grid; place-items: center; }
+.fsp .fsp-controls .iconbtn:hover { color: var(--ink); background: var(--paper-2); }
+.fsp .fsp-controls .scrub { display: flex; align-items: center; gap: 14px; max-width: 720px; width: 100%; margin: 0 auto; }
+.fsp .fsp-controls .scrub .t { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); min-width: 42px; font-variant-numeric: tabular-nums; }
+.fsp .fsp-controls .scrub .t.r { text-align: right; }
+.fsp .fsp-controls .scrub .track { flex: 1; height: 3px; background: var(--paper-3); border-radius: 2px; position: relative; }
+.fsp .fsp-controls .scrub .track .fill { position: absolute; left:0; top:0; bottom: 0; background: var(--gold); border-radius: 2px; }
+.fsp .fsp-controls .scrub .track .knob { position: absolute; top: 50%; width: 11px; height: 11px; background: var(--gold); border-radius: 50%; transform: translate(-50%,-50%); }
+
+/* ========== UPLOAD ========== */
+.up-wrap { max-width: 880px; margin: 0 auto; padding: 8px 36px 60px; }
+.up-wrap h1 { margin: 12px 0 6px; font-family: var(--font-serif); font-weight: 300; font-size: 54px; letter-spacing: -0.025em; font-variation-settings: "opsz" 72; }
+.up-wrap h1 em { font-style: italic; color: var(--gold); }
+.up-wrap .sub { color: var(--ink-3); font-size: 14px; margin-bottom: 28px; max-width: 520px; line-height: 1.6; }
+
+.dropzone {
+  border: 1px dashed var(--ink-3); background: var(--paper-2);
+  padding: 48px; text-align: center; position: relative; min-height: 240px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  transition: all .15s;
+}
+.dropzone:hover { border-color: var(--ink); background: var(--paper-3); }
+.dropzone .icn { color: var(--ink-3); }
+.dropzone h3 { font-family: var(--font-serif); font-weight: 400; font-size: 22px; margin: 0; }
+.dropzone .or { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.dropzone .constraints { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); margin-top: 8px; }
+
+/* Upload progress (fake) */
+.up-progress { border: 1px solid var(--rule); background: var(--paper-2); padding: 22px 24px; margin-top: 22px; display: none; }
+.up-progress.on { display: block; }
+.up-progress .r { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.up-progress .r .ic { width: 42px; height: 54px; background: var(--paper); border: 1px solid var(--rule); display: grid; place-items: center; color: var(--ink-3); }
+.up-progress .r .m { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.up-progress .r .m .t { font-family: var(--font-serif); font-size: 15px; }
+.up-progress .r .m .s { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.up-progress .track { height: 2px; background: var(--paper-3); position: relative; }
+.up-progress .track .f { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gold); }
+.up-progress .steps { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+.up-progress .step { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-3); }
+.up-progress .step .s { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--rule); display: grid; place-items: center; font-family: var(--font-mono); font-size: 10px; }
+.up-progress .step.done { color: var(--ink-2); }
+.up-progress .step.done .s { background: var(--green); color: #fff; border-color: var(--green); }
+.up-progress .step.now { color: var(--ink); }
+.up-progress .step.now .s { background: var(--gold); color: #fff; border-color: var(--gold); animation: pulse 1.3s infinite; }
+
+.up-result { border: 1px solid var(--rule); margin-top: 22px; display: none; }
+.up-result.on { display: block; }
+.up-result .head { padding: 18px 22px; display: grid; grid-template-columns: 90px 1fr auto; gap: 18px; align-items: center; border-bottom: 1px solid var(--rule); background: var(--paper-2); }
+.up-result .head .bc { width: 90px; height: 128px; box-shadow: 0 6px 18px -8px #0008; }
+.up-result .head .info .t { font-family: var(--font-serif); font-size: 24px; letter-spacing: -0.01em; }
+.up-result .head .info .t em { font-style: italic; color: var(--gold); }
+.up-result .head .info .a { font-family: var(--font-serif); font-style: italic; color: var(--ink-3); margin-top: 2px; font-size: 14px; }
+.up-result .head .info .f { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 8px; display: flex; gap: 14px; }
+.up-result .chlist { padding: 10px 22px 16px; max-height: 260px; overflow-y: auto; }
+.up-result .chlist .row { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; padding: 8px 0; border-bottom: 1px dashed var(--rule); font-size: 13px; align-items: center; }
+.up-result .chlist .row .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); }
+.up-result .chlist .row .t { font-family: var(--font-serif); }
+.up-result .chlist .row .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+/* Tweaks panel */
+.tweaks-panel {
+  position: fixed; right: 18px; bottom: 100px; width: 300px; z-index: 90;
+  background: var(--paper-2); border: 1px solid var(--ink); box-shadow: 0 20px 50px -20px #0008;
+  padding: 18px 20px; display: none; animation: fadein .2s;
+  max-height: calc(100vh - 180px); overflow-y: auto;
+}
+.tweaks-panel.on { display: block; }
+.tweaks-panel h4 { margin: 0 0 14px; font-family: var(--font-serif); font-size: 18px; font-weight: 400; display: flex; align-items: center; justify-content: space-between; letter-spacing: -0.01em; }
+.tweaks-panel h4 em { font-style: italic; color: var(--ink-3); }
+.tweaks-panel .grp { margin-bottom: 16px; }
+.tweaks-panel .grp .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; display: flex; justify-content: space-between; }
+.tweaks-panel .grp .lbl .v { color: var(--ink); }
+.seg { display: flex; border: 1px solid var(--rule); }
+.seg button { flex: 1; padding: 6px 4px; background: transparent; border: 0; font-family: var(--font-sans); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-right: 1px solid var(--rule); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.rng { width: 100%; appearance: none; background: var(--paper-3); height: 2px; }
+.rng::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--ink); cursor: pointer; }
+
+/* Placeholders (striped) */
+.ph {
+  background:
+    repeating-linear-gradient(135deg, var(--paper-3) 0 8px, var(--paper-2) 8px 16px);
+  border: 1px dashed var(--ink-4);
+  display: grid; place-items: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+/* Theme toggle in topbar */
+.tb-actions { display: flex; align-items: center; gap: 10px; }
+.theme-toggle { border: 1px solid var(--rule); padding: 6px 10px; background: transparent; color: var(--ink); cursor: pointer; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.theme-toggle:hover { border-color: var(--ink); }
+
+/* density variants */
+html[data-density="compact"] {
+  --reading-lh: 1.4;
+}
+html[data-density="comfortable"] {
+  --reading-lh: 1.7;
+}
+
+/* Highlight variants additional */
+html[data-hl="scale"] .sent.active { color: var(--ink); font-size: 1.08em; font-weight: 500; transition: all .2s; }
+html[data-hl="scale"] .sent { opacity: .4; }
+html[data-hl="gutter"] .sent.active { color: var(--ink); position: relative; }
+html[data-hl="gutter"] .sent.active::before { content: ""; position: absolute; left: -18px; top: 0.2em; bottom: 0.2em; width: 3px; background: var(--marker); }
+html[data-hl="gutter"] .sent { opacity: .55; }
+
+/* Screen switcher state */
+[data-show] { display: none; }
+[data-show].vis { display: block; }
+
+/* Tables / misc */
+.tag { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); padding: 2px 6px; border: 1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<!-- sidebar rail -->
+<aside class="rail">
+  <div class="mark">V</div>
+  <button class="nav active" data-goto="library" title="Library">
+    <svg class="icn lg" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 4h3l2 16h-5z"/></svg>
+  </button>
+  <button class="nav" data-goto="upload" title="Upload">
+    <svg class="icn lg" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+  </button>
+  <button class="nav" data-goto="detail" title="Book">
+    <svg class="icn lg" viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h12v18H6a2 2 0 01-2-2V5zM4 17h14"/></svg>
+  </button>
+  <button class="nav" data-goto="player" title="Player">
+    <svg class="icn lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z"/></svg>
+  </button>
+  <div class="spacer"></div>
+  <button class="nav" title="Settings">
+    <svg class="icn lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 010-4h.09A1.65 1.65 0 004.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </button>
+  <div class="me">IJ</div>
+</aside>
+
+<main class="main paper-tex">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="search">
+      <svg class="icn" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input placeholder="Search your library, chapters, passages…"/>
+      <span class="kbd">⌘K</span>
+    </div>
+    <div class="tb-actions">
+      <button class="theme-toggle" id="themeToggle">
+        <svg class="icn sm" viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+      <button class="btn sm" id="tweakToggle">
+        <svg class="icn sm" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
+        Tweaks
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ LIBRARY ============ -->
+  <section class="screen active" id="screen-library"></section>
+
+  <!-- ============ UPLOAD ============ -->
+  <section class="screen" id="screen-upload"></section>
+
+  <!-- ============ DETAIL ============ -->
+  <section class="screen" id="screen-detail"></section>
+
+  <!-- ============ PLAYER ============ -->
+  <section class="screen" id="screen-player"></section>
+
+</main>
+
+<!-- Mini player -->
+<div class="mini" id="mini"></div>
+
+<!-- Fullscreen player -->
+<div class="fsp" id="fsp"></div>
+
+<!-- Tweaks -->
+<div class="tweaks-panel" id="tweaks"></div>
+
+<script>
+/*EDITMODE-BEGIN*/
+window.__TWEAKS = {
+  "theme": "light",
+  "density": "comfortable",
+  "reading_size": 22,
+  "reading_font": "serif",
+  "hl_mode": "word",
+  "voice": "Ember"
+};
+/*EDITMODE-END*/
+</script>
+
+<script>
+// ============ Book data ============
+const COVERS = [
+  { t: "Meditations", a: "Marcus Aurelius", bg: "#2E2A24", fg: "#D4A15F", serif: true, mark: "M·A", ornType: "rule" },
+  { t: "Pride and Prejudice", a: "Jane Austen", bg: "#7A3A4A", fg: "#F5E8D5", mark: "1813", ornType: "rule" },
+  { t: "The Great Gatsby", a: "F. Scott Fitzgerald", bg: "#1C3A4F", fg: "#D4A15F", mark: "1925", ornType: "diamond" },
+  { t: "1984", a: "George Orwell", bg: "#1A1A1A", fg: "#C44536", mark: "Vol. I", ornType: "rule" },
+  { t: "Frankenstein", a: "Mary Shelley", bg: "#2C3A2E", fg: "#E8D9B8", mark: "1818", ornType: "rule" },
+  { t: "Jane Eyre", a: "Charlotte Brontë", bg: "#4A2E3E", fg: "#E6D5B8", mark: "Vol. II", ornType: "rule" },
+  { t: "Walden", a: "Henry D. Thoreau", bg: "#3E4A2E", fg: "#E6D5B8", mark: "Essay", ornType: "diamond" },
+  { t: "Dracula", a: "Bram Stoker", bg: "#2A1A1A", fg: "#A8452F", mark: "1897", ornType: "rule" },
+  { t: "Wuthering Heights", a: "Emily Brontë", bg: "#3A3A4A", fg: "#D4C6A8", mark: "1847", ornType: "rule" },
+  { t: "The Iliad", a: "Homer", bg: "#5A3A1A", fg: "#E6C88A", mark: "Bk. I", ornType: "diamond" },
+  { t: "Essays", a: "Michel de Montaigne", bg: "#3A2E1A", fg: "#C69A5A", mark: "Livre I", ornType: "rule" },
+  { t: "Moby-Dick", a: "Herman Melville", bg: "#1A2E3A", fg: "#D4C6A8", mark: "1851", ornType: "rule" },
+];
+
+function makeCover(c, size){
+  return `
+    <div class="cov" style="background:${c.bg}; color:${c.fg};">
+      <div class="spine"></div>
+      <div class="mark">${c.mark}</div>
+      <div class="orn" style="background:${c.fg}"></div>
+      <div>
+        <div class="t" style="font-size:${size||15}px; line-height:1.0; font-style:italic; font-variation-settings:'opsz' 72;">${c.t}</div>
+      </div>
+      <div class="a" style="color:${c.fg}">${c.a}</div>
+    </div>`;
+}
+
+// ============ Sample book content (Meditations — public domain) ============
+const SAMPLE_BOOK = {
+  title: "Meditations",
+  author: "Marcus Aurelius",
+  cover: COVERS[0],
+  translated: "Tr. George Long, 1862",
+  year: "c. 170 CE",
+  lang: "English (translated)",
+  runtime: "7h 22m",
+  words: 68420,
+  chapters: [
+    { n: 1, t: "Book I — Debts and Lessons", dur: "42:18", words: 4210, status: "done", prog: 100 },
+    { n: 2, t: "Book II — On the River of Things", dur: "31:04", words: 3102, status: "done", prog: 100 },
+    { n: 3, t: "Book III — What Remains", dur: "38:47", words: 3884, status: "done", prog: 100, playing: true },
+    { n: 4, t: "Book IV — The Inner Citadel", dur: "52:11", words: 5222, status: "done", prog: 100 },
+    { n: 5, t: "Book V — Duty at Dawn", dur: "44:36", words: 4461, status: "running", prog: 64 },
+    { n: 6, t: "Book VI — The Ruling Principle", dur: "49:52", words: 4988, status: "running", prog: 23 },
+    { n: 7, t: "Book VII — On Opinion", dur: "47:20", words: 4732, status: "queued", prog: 0 },
+    { n: 8, t: "Book VIII — The Present Moment", dur: "41:08", words: 4118, status: "queued", prog: 0 },
+    { n: 9, t: "Book IX — That Which Injures", dur: "36:45", words: 3675, status: "queued", prog: 0 },
+    { n: 10, t: "Book X — Nature & Substance", dur: "38:02", words: 3801, status: "queued", prog: 0 },
+    { n: 11, t: "Book XI — On Tragedy", dur: "43:19", words: 4332, status: "failed", prog: 0, err: "TTS rate limit" },
+    { n: 12, t: "Book XII — Go In Peace", dur: "28:54", words: 2895, status: "queued", prog: 0 },
+  ]
+};
+
+// Book III text — sentences arrays for sync. Times fabricated but plausible.
+const CHAPTER_TEXT = {
+  heading: "Book III",
+  subtitle: "What Remains",
+  paragraphs: [
+    [ // paragraph 0
+      { text: "We ought to consider not only that our life is daily wasting away and a smaller part of it is left, but that if a man should live longer, it is quite uncertain whether the understanding will still continue sufficient for the comprehension of things.", t0: 0.5, t1: 13.6 },
+      { text: "For if he shall begin to fall into dotage, perspiration and nutrition and imagination and appetite, and whatever else there is of the kind, will not fail.", t0: 13.8, t1: 24.1 },
+      { text: "But the power of making use of ourselves, and filling up the measure of our duty, and clearly separating all appearances, and considering whether a man should now depart from life — this power fails first.", t0: 24.3, t1: 40.4 },
+    ],
+    [ // paragraph 1
+      { text: "We must make haste then, not only because we are daily nearer to death, but also because the conception of things and the understanding of them cease first.", t0: 41.2, t1: 52.9 },
+      { text: "Such things as these we ought to observe, that the paths of life are short, and that those who receive the honors of the world are equally unknown; soon forgotten, swallowed up in the remoteness of the past.", t0: 53.1, t1: 67.9 },
+      { text: "What then is that about which we ought to employ our serious pains?", t0: 68.2, t1: 72.5 },
+    ],
+    [ // paragraph 2
+      { text: "This one thing: thoughts just, and acts social, and words which never lie, and a disposition which gladly accepts all that happens as necessary, as usual, as flowing from a principle and source of the same kind.", t0: 73.0, t1: 88.8 },
+      { text: "Yield thyself to Clotho; let her spin thy thread into whatever web she pleases.", t0: 89.2, t1: 95.7 },
+      { text: "All things are in a common change; and thou art a part of the whole.", t0: 96.0, t1: 102.4 },
+    ],
+    [ // paragraph 3
+      { text: "Nothing is so conducive to greatness of mind as the power to examine systematically and truthfully everything that presents itself in life.", t0: 103.0, t1: 114.0 },
+      { text: "And to look at these things in such a way as to consider of what kind the universe is, and of what kind this thing in the universe is.", t0: 114.3, t1: 123.8 },
+      { text: "And what is its relation to the whole — and of what kind it is by the nature of the whole, and who is he that uses it.", t0: 124.0, t1: 133.9 },
+    ]
+  ]
+};
+
+// ============ rendering helpers ============
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+
+function fmtTime(s){
+  if (isNaN(s)) return "0:00";
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s/60), r = s%60;
+  return `${m}:${String(r).padStart(2,"0")}`;
+}
+
+// ========== LIBRARY ==========
+function renderLibrary(){
+  const currentCh = SAMPLE_BOOK.chapters.find(c => c.playing);
+  const firstSent = CHAPTER_TEXT.paragraphs[0][0].text;
+  const html = `
+    <div class="page-h">
+      <div>
+        <div class="eyebrow" style="margin-bottom:10px;">Your Library · 14 Volumes</div>
+        <h1>Good evening,<br/><em>Iris.</em></h1>
+      </div>
+      <div class="sub">Pick up where you left you off, or bring a new ebook into the fold. Generation resumes automatically.</div>
+    </div>
+
+    <div class="continue">
+      <div class="cover-wrap"><div class="cover">${makeCover(SAMPLE_BOOK.cover, 16)}</div></div>
+      <div class="body">
+        <div class="eye"><span class="eyebrow">Continue Listening</span></div>
+        <div class="t">Meditations<span style="color:var(--ink-3);font-style:italic;"> · Book III</span></div>
+        <div class="by serif" style="font-style:italic; color:var(--ink-3); font-size:15px;">Marcus Aurelius · tr. George Long · narrated by Ember</div>
+        <div class="line">
+          <div class="meta num">14:22 / 38:47</div>
+          <div class="prog"><div class="fill"></div></div>
+          <div class="meta">38%</div>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="resume">
+          <button class="play-big" data-goto="player">
+            <svg class="icn lg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="where">
+            <div class="ch">Ch. III · 38%</div>
+            <div class="st">“…yield thyself to Clotho; let her spin thy thread…”</div>
+          </div>
+        </div>
+        <hr class="hair" style="margin: 6px 0;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn sm" data-goto="detail"><svg class="icn sm" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Chapters</button>
+          <button class="btn sm ghost"><svg class="icn sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add note</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shelf">
+      <div class="h">
+        <div style="display:flex; align-items:baseline; gap:14px;">
+          <h2>In Progress <em>· 3</em></h2>
+        </div>
+        <div class="sort"><span class="on">Recent</span><span>Author</span><span>Added</span><span>Length</span></div>
+      </div>
+      <div class="grid">
+        ${renderCard(COVERS[0], "Meditations", "Marcus Aurelius", "5h 14m", 38, "gen", "Ch 3 of 12")}
+        ${renderCard(COVERS[1], "Pride and Prejudice", "Jane Austen", "11h 02m", 72, null, "Ch 47 of 61")}
+        ${renderCard(COVERS[2], "The Great Gatsby", "F. Scott Fitzgerald", "4h 48m", 14, null, "Ch 2 of 9")}
+      </div>
+    </div>
+
+    <div class="shelf">
+      <div class="h">
+        <div><h2>Processing <em>· 2</em></h2></div>
+        <div class="meta">· 5 of 23 chapters remaining</div>
+      </div>
+      <div class="grid">
+        ${renderCardProcessing(COVERS[3], "1984", "George Orwell", 14, 23, "running")}
+        ${renderCardProcessing(COVERS[4], "Frankenstein", "Mary Shelley", 6, 24, "running")}
+      </div>
+    </div>
+
+    <div class="shelf">
+      <div class="h">
+        <div><h2>Library <em>· 9</em></h2></div>
+        <div class="meta">Sorted by date added</div>
+      </div>
+      <div class="grid">
+        ${renderCard(COVERS[5], "Jane Eyre", "Charlotte Brontë", "18h 33m", 0, null, "Ready")}
+        ${renderCard(COVERS[6], "Walden", "H. D. Thoreau", "9h 14m", 0, null, "Ready")}
+        ${renderCard(COVERS[7], "Dracula", "Bram Stoker", "15h 21m", 0, "new", "Just added")}
+        ${renderCard(COVERS[8], "Wuthering Heights", "Emily Brontë", "12h 08m", 0, null, "Ready")}
+        ${renderCard(COVERS[9], "The Iliad", "Homer", "21h 44m", 0, null, "Ready")}
+        ${renderCard(COVERS[10], "Essays", "Michel de Montaigne", "33h 17m", 0, null, "Ready")}
+        ${renderCard(COVERS[11], "Moby-Dick", "Herman Melville", "24h 51m", 0, null, "Ready")}
+        <div class="card" style="opacity:.7; cursor:pointer;" data-goto="upload">
+          <div class="ph" style="aspect-ratio:2/3;">
+            <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px;">
+              <svg class="icn xl" viewBox="0 0 24 24" style="color:var(--ink-3);"><path d="M12 5v14M5 12h14"/></svg>
+              Drop an EPUB
+            </div>
+          </div>
+          <div>
+            <div class="t serif" style="font-size:15px;">Add new book</div>
+            <div class="a">up to 50 MB</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  $("#screen-library").innerHTML = html;
+}
+
+function renderCard(cov, t, a, dur, prog, badge, sub){
+  const bhtml = badge ? `<div class="badge ${badge}">${badge==="new"?"New":"Generated"}</div>` : "";
+  const phtml = prog > 0 ? `<div class="bar"><div class="f" style="width:${prog}%"></div></div>` : "";
+  return `
+    <div class="card" data-goto="${t==='Meditations'?'detail':'detail'}">
+      <div class="cover">${makeCover(cov)}${bhtml}</div>
+      <div>
+        <div class="meta-row"><div class="t">${t}</div><div class="dur">${dur}</div></div>
+        <div class="a">${a}</div>
+        <div class="meta-row" style="margin-top:2px;">
+          <div class="meta">${sub}</div>
+          ${prog > 0 ? `<div class="meta num">${prog}%</div>` : ""}
+        </div>
+        ${phtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderCardProcessing(cov, t, a, doneCh, total, status){
+  const pct = Math.round(doneCh/total*100);
+  return `
+    <div class="card">
+      <div class="cover">${makeCover(cov)}<div class="badge" style="background:var(--gold);">Generating</div></div>
+      <div>
+        <div class="meta-row"><div class="t">${t}</div><div class="dur num">${doneCh}/${total}</div></div>
+        <div class="a">${a}</div>
+        <div class="bar" style="margin-top:8px;"><div class="f" style="width:${pct}%"></div></div>
+        <div class="meta" style="margin-top:4px; display:flex; justify-content:space-between;">
+          <span style="color:var(--gold);">● Narrating ch ${doneCh+1}</span>
+          <span>~${Math.round((total-doneCh)*1.8)} min left</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== DETAIL ==========
+function renderDetail(){
+  const b = SAMPLE_BOOK;
+  const html = `
+    <div class="bd">
+      <div class="left">
+        <div class="bigcover">${makeCover(b.cover, 22)}</div>
+        <div class="facts">
+          <div class="row"><span>Author</span><span>Marcus Aurelius</span></div>
+          <div class="row"><span>Translator</span><span>George Long</span></div>
+          <div class="row"><span>Original</span><span>c. 170 CE</span></div>
+          <div class="row"><span>Chapters</span><span>12</span></div>
+          <div class="row"><span>Word count</span><span>68,420</span></div>
+          <div class="row"><span>Est. runtime</span><span>7h 22m</span></div>
+          <div class="row"><span>Voice</span><span style="color:var(--gold);">Ember</span></div>
+          <div class="row"><span>Added</span><span>Mar 19, 2026</span></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="crumb"><a data-goto="library">Library</a> / Meditations</div>
+        <h1>Meditations,<br/><em>writ by his own hand.</em></h1>
+        <div class="au">Marcus Aurelius · translated by George Long</div>
+
+        <p class="lede">Twelve short books of private reflection, composed by a Roman emperor on campaign and never intended to be read. The text moves like breath — turning from duty, to death, to the discipline of the present moment — a manual for being, written to no one.</p>
+
+        <div class="gen-panel">
+          <div class="left">
+            <div class="eye">
+              <span class="eyebrow">Narration</span>
+              <span class="meta">· 5 of 12 chapters complete · ~38 min left</span>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:18px;">
+              <h3>Choose a voice</h3>
+              <span class="meta">Tap to preview (14s)</span>
+            </div>
+            <div class="voices">
+              ${["Alloy — neutral","Echo — resonant","Fable — literary","Onyx — deep","Ember — warm","Shimmer — bright"].map((v,i)=>{
+                const [name,desc] = v.split(" — ");
+                const active = name==="Ember";
+                return `<button class="voice-chip ${active?'active':''}"><span class="dot"></span>${name}<span style="opacity:.6; margin-left:4px;">${desc}</span></button>`;
+              }).join("")}
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn gold xl">
+              <svg class="icn" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>
+              Resume generation
+            </button>
+            <button class="btn sm ghost">
+              <svg class="icn sm" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>
+              Re-generate from start
+            </button>
+          </div>
+        </div>
+
+        <table class="chapters-table">
+          <thead><tr>
+            <th>#</th><th>Chapter</th><th>Status</th><th style="text-align:right;">Words</th><th style="text-align:right;">Duration</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${b.chapters.map(ch => `
+              <tr class="${ch.playing?'playing':''}" ${ch.playing?'data-goto="player"':''}>
+                <td class="n">${String(ch.n).padStart(2,"0")}</td>
+                <td>
+                  <div class="ct">${ch.t.split("—")[0]}<em>—${ch.t.split("—")[1]}</em></div>
+                </td>
+                <td class="st">
+                  ${ch.status === 'running'
+                    ? `<div style="display:flex; flex-direction:column; gap:4px;">
+                         <span class="st-pill running"><span class="d"></span>Narrating</span>
+                         <div class="prog-cell"><div class="f" style="width:${ch.prog}%"></div></div>
+                       </div>`
+                    : `<span class="st-pill ${ch.status}"><span class="d"></span>${ch.status.charAt(0).toUpperCase()+ch.status.slice(1)}</span>`}
+                  ${ch.err ? `<div class="meta" style="color:var(--red); margin-top:4px;">${ch.err}</div>` : ""}
+                </td>
+                <td class="wc">${ch.words.toLocaleString()}</td>
+                <td class="dur num">${ch.dur}</td>
+                <td style="width:40px;">
+                  <button class="plybtn" title="${ch.status==='done'?'Play':(ch.status==='failed'?'Retry':'—')}">
+                    ${ch.status === 'failed'
+                      ? `<svg class="icn sm" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>`
+                      : `<svg class="icn sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>`}
+                  </button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  $("#screen-detail").innerHTML = html;
+}
+
+// ========== UPLOAD ==========
+function renderUpload(){
+  $("#screen-upload").innerHTML = `
+    <div class="up-wrap">
+      <div class="eyebrow" style="margin-bottom:14px;">New book · step 1 of 2</div>
+      <h1>Bring a book<br/><em>into the fold.</em></h1>
+      <p class="sub">Drop an EPUB and we'll parse chapters, extract the cover, and hand it to the narrator. Everything is scoped to you — your texts and their audio live in your library alone.</p>
+
+      <div class="dropzone" id="dropzone">
+        <svg class="icn xl" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+        <h3>Drop your EPUB here</h3>
+        <div class="or">— or —</div>
+        <button class="btn primary" id="browseFake">Browse files</button>
+        <div class="constraints">.EPUB · up to 50 MB · duplicates detected by hash</div>
+      </div>
+
+      <div class="up-progress" id="upProgress">
+        <div class="r">
+          <div class="ic"><svg class="icn" viewBox="0 0 24 24"><path d="M4 4h10l6 6v10a2 2 0 01-2 2H4z"/><path d="M14 4v6h6"/></svg></div>
+          <div class="m">
+            <div class="t">Meditations.epub</div>
+            <div class="s">3.82 MB · sha256 7f3c…a912</div>
+          </div>
+          <div class="meta num" id="upPct">64%</div>
+        </div>
+        <div class="track"><div class="f" id="upFill" style="width:64%"></div></div>
+        <div class="steps">
+          <div class="step done"><div class="s">✓</div>Uploaded to storage</div>
+          <div class="step done"><div class="s">✓</div>Validated EPUB (12 chapters detected)</div>
+          <div class="step now"><div class="s">3</div>Extracting cover & metadata</div>
+          <div class="step"><div class="s">4</div>Preparing chapter text for narration</div>
+        </div>
+      </div>
+
+      <div class="up-result" id="upResult">
+        <div class="head">
+          <div class="bc">${makeCover(COVERS[0])}</div>
+          <div class="info">
+            <div class="t">Meditations<em>, writ by his own hand</em></div>
+            <div class="a">Marcus Aurelius · tr. George Long</div>
+            <div class="f">
+              <span>12 chapters</span>
+              <span>·</span>
+              <span>68,420 words</span>
+              <span>·</span>
+              <span>est. 7h 22m</span>
+              <span>·</span>
+              <span>~$2.40 to narrate</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn primary" data-goto="detail">Choose voice →</button>
+            <button class="btn sm ghost">Rename</button>
+          </div>
+        </div>
+        <div class="chlist">
+          ${SAMPLE_BOOK.chapters.slice(0,8).map(c => `
+            <div class="row">
+              <span class="n">${String(c.n).padStart(2,"0")}</span>
+              <span class="t">${c.t}</span>
+              <span class="w num">${c.words.toLocaleString()} w</span>
+            </div>
+          `).join("")}
+          <div class="row" style="opacity:.5;">
+            <span class="n">···</span><span class="t serif" style="font-style:italic;">4 more chapters</span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Fake upload sequence
+  $("#browseFake").onclick = () => {
+    $("#dropzone").style.display = "none";
+    $("#upProgress").classList.add("on");
+    let p = 0;
+    const iv = setInterval(() => {
+      p += 8 + Math.random()*8;
+      if (p >= 100) { p = 100; clearInterval(iv); finishUpload(); }
+      $("#upFill").style.width = p+"%";
+      $("#upPct").textContent = Math.round(p)+"%";
+    }, 200);
+  };
+  function finishUpload(){
+    setTimeout(()=>{
+      $("#upProgress").classList.remove("on");
+      $("#upResult").classList.add("on");
+    }, 400);
+  }
+}
+
+// ========== PLAYER ==========
+function renderPlayer(){
+  let html = `
+    <div class="player-page">
+      <div class="bar">
+        <div class="nowplaying">
+          <div class="mini-cov">${makeCover(SAMPLE_BOOK.cover, 12)}</div>
+          <div class="np-meta">
+            <div class="ch">Book III · Chapter 3 of 12</div>
+            <div class="tt">What Remains</div>
+            <div class="au">Meditations · Marcus Aurelius</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn sm ghost" id="expandFSP">
+            <svg class="icn sm" viewBox="0 0 24 24"><path d="M4 4h6M4 4v6M20 4h-6M20 4v6M4 20h6M4 20v-6M20 20h-6M20 20v-6"/></svg>
+            Enter immersive
+          </button>
+          <button class="btn sm ghost" data-goto="detail">
+            <svg class="icn sm" viewBox="0 0 24 24"><path d="M3 6l18-3v18L3 18z"/></svg>
+            Chapters
+          </button>
+        </div>
+      </div>
+
+      <div class="reading-frame" id="readingFrame">
+        <div class="chapter-head">
+          <div class="eye">· Liber Tertius ·</div>
+          <h2>What Remains</h2>
+          <div class="orn">· · ·</div>
+        </div>
+        ${renderReading()}
+      </div>
+    </div>
+  `;
+  $("#screen-player").innerHTML = html;
+
+  $("#expandFSP").onclick = () => openFSP();
+}
+
+function renderReading(){
+  return CHAPTER_TEXT.paragraphs.map((para, pi) => {
+    return `<p class="para">${para.map((s, si) => {
+      const sid = `s-${pi}-${si}`;
+      const words = s.text.split(/(\s+)/).map((w,wi) => {
+        if (/^\s+$/.test(w)) return w;
+        return `<span class="word" data-wi="${wi}"><span class="base">${w}</span><span class="wipe" aria-hidden="true">${w}</span></span>`;
+      }).join("");
+      return `<span class="sent" id="${sid}" data-t0="${s.t0}" data-t1="${s.t1}">${words}</span>`;
+    }).join(" ")}</p>`;
+  }).join("");
+}
+
+// ========== MINI / FSP ==========
+function renderMini(){
+  const m = $("#mini");
+  m.innerHTML = `
+    <div class="np">
+      <div class="c">${makeCover(SAMPLE_BOOK.cover, 10)}</div>
+      <div class="info">
+        <div class="t">What Remains</div>
+        <div class="s">Book III · Meditations</div>
+      </div>
+    </div>
+    <div class="center">
+      <div class="transport">
+        <button class="iconbtn" title="Prev chapter"><svg class="icn" viewBox="0 0 24 24"><path d="M19 20L9 12l10-8zM5 4v16"/></svg></button>
+        <button class="iconbtn" title="-15"><svg class="icn" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.5 10a9 9 0 11-2 5"/><text x="10" y="16" font-family="monospace" font-size="8" font-weight="600" fill="currentColor" stroke="none">15</text></svg></button>
+        <button class="iconbtn play" id="miniPlay">
+          <svg class="icn" viewBox="0 0 24 24" fill="currentColor" stroke="none" id="miniPlayIcon"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+        </button>
+        <button class="iconbtn" title="+15"><svg class="icn" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.5 10a9 9 0 10-2 5"/><text x="8" y="16" font-family="monospace" font-size="8" font-weight="600" fill="currentColor" stroke="none">15</text></svg></button>
+        <button class="iconbtn" title="Next chapter"><svg class="icn" viewBox="0 0 24 24"><path d="M5 4l10 8-10 8zM19 4v16"/></svg></button>
+      </div>
+      <div class="scrub">
+        <span class="t num" id="miniCur">0:00</span>
+        <div class="track" id="miniTrack"><div class="fill" id="miniFill"></div><div class="knob" id="miniKnob"></div></div>
+        <span class="t r num">38:47</span>
+      </div>
+    </div>
+    <div class="right">
+      <button class="speed" id="miniSpeed">1.0×</button>
+      <button class="iconbtn" title="Voice"><svg class="icn" viewBox="0 0 24 24"><path d="M3 10v4M7 6v12M11 8v8M15 4v16M19 8v8M23 10v4"/></svg></button>
+      <button class="expand" id="miniExpand" title="Immersive">
+        <svg class="icn sm" viewBox="0 0 24 24"><path d="M4 4h6M4 4v6M20 4h-6M20 4v6M4 20h6M4 20v-6M20 20h-6M20 20v-6"/></svg>
+      </button>
+    </div>
+  `;
+}
+
+function renderFSP(){
+  const fsp = $("#fsp");
+  fsp.innerHTML = `
+    <div class="fsp-bar">
+      <div class="l">
+        <div class="mini-cov" style="width:40px; height:58px;">${makeCover(SAMPLE_BOOK.cover, 11)}</div>
+        <div class="title-wrap">
+          <div class="s">Book III · What Remains</div>
+          <div class="t">Meditations <span style="color:var(--ink-3); font-style:italic;">— Marcus Aurelius</span></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn sm ghost">
+          <svg class="icn sm" viewBox="0 0 24 24"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="9"/></svg>
+          Bookmark
+        </button>
+        <button class="btn sm ghost" id="closeFSP">
+          <svg class="icn sm" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          Close
+        </button>
+      </div>
+    </div>
+    <div class="body">
+      <div class="reading-col" id="fspReading">
+        <div class="reading-frame" style="margin: 40px auto 240px;">
+          <div class="chapter-head">
+            <div class="eye">· Liber Tertius ·</div>
+            <h2>What Remains</h2>
+            <div class="orn">· · ·</div>
+          </div>
+          ${renderReading()}
+        </div>
+      </div>
+      <div class="sidebar-col">
+        <h4>In this chapter</h4>
+        <div class="meta" style="margin-bottom:20px; color:var(--ink-2); font-family: var(--font-serif); font-style: italic; font-size: 14px; line-height: 1.5;">“We must make haste — not only because we are daily nearer to death, but also because the understanding cease first.”</div>
+
+        <h4>Chapters</h4>
+        <ul class="chap-list">
+          ${SAMPLE_BOOK.chapters.map(c => `
+            <li class="${c.playing?'on':''} ${c.status==='done'?'done':''}">
+              <span class="n">${String(c.n).padStart(2,"0")}</span>
+              <span class="ct serif">${c.t.split('—')[1] || c.t}</span>
+              <span class="d num">${c.dur}</span>
+            </li>
+          `).join("")}
+        </ul>
+
+        <h4>Voice</h4>
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--rule); background: var(--paper-3);">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--gold); display:grid; place-items:center; color:#fff; font-family: var(--font-serif); font-size:14px;">E</div>
+          <div style="flex:1;">
+            <div style="font-family: var(--font-serif); font-size:15px;">Ember</div>
+            <div class="meta">warm · mid-range · en-US</div>
+          </div>
+          <button class="btn sm ghost">change</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsp-controls">
+      <div class="scrub">
+        <span class="t num" id="fspCur">0:00</span>
+        <div class="track" id="fspTrack"><div class="fill" id="fspFill"></div><div class="knob" id="fspKnob"></div></div>
+        <span class="t r num">38:47</span>
+      </div>
+      <div class="tr">
+        <button class="iconbtn" title="Prev chapter"><svg class="icn lg" viewBox="0 0 24 24"><path d="M19 20L9 12l10-8zM5 4v16"/></svg></button>
+        <button class="iconbtn" title="-15s"><svg class="icn lg" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.5 10a9 9 0 11-2 5"/><text x="10" y="16" font-family="monospace" font-size="7" font-weight="600" fill="currentColor" stroke="none">15</text></svg></button>
+        <button class="big-play" id="fspPlay">
+          <svg class="icn xl" viewBox="0 0 24 24" fill="currentColor" stroke="none" id="fspPlayIcon"><path d="M7 4h4v16H7zM14 4h4v16h-4z"/></svg>
+        </button>
+        <button class="iconbtn" title="+15s"><svg class="icn lg" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.5 10a9 9 0 10-2 5"/><text x="8" y="16" font-family="monospace" font-size="7" font-weight="600" fill="currentColor" stroke="none">15</text></svg></button>
+        <button class="iconbtn" title="Next chapter"><svg class="icn lg" viewBox="0 0 24 24"><path d="M5 4l10 8-10 8zM19 4v16"/></svg></button>
+      </div>
+    </div>
+  `;
+
+  $("#closeFSP").onclick = closeFSP;
+  $("#fspPlay").onclick = togglePlay;
+}
+
+function openFSP(){ $("#fsp").classList.add("on"); }
+function closeFSP(){ $("#fsp").classList.remove("on"); }
+
+// ========== Playback simulation ==========
+const TOTAL_DUR = 133.9; // last sentence end
+let curTime = 38.2; // start partway
+let playing = true;
+
+function setTime(t){
+  curTime = Math.max(0, Math.min(TOTAL_DUR, t));
+  updateSync();
+  const pct = curTime / TOTAL_DUR * 100;
+  $("#miniFill").style.width = pct+"%";
+  $("#miniKnob").style.left = pct+"%";
+  $("#miniCur").textContent = fmtTime(curTime);
+  if ($("#fspFill")) {
+    $("#fspFill").style.width = pct+"%";
+    $("#fspKnob").style.left = pct+"%";
+    $("#fspCur").textContent = fmtTime(curTime);
+  }
+}
+
+function updateSync(){
+  // find active sentence
+  const sents = [...document.querySelectorAll(".sent")];
+  sents.forEach(s => {
+    const t0 = parseFloat(s.dataset.t0);
+    const t1 = parseFloat(s.dataset.t1);
+    s.classList.remove("active", "played");
+    if (curTime >= t1) s.classList.add("played");
+    else if (curTime >= t0 && curTime <= t1) {
+      s.classList.add("active");
+      // word sync within
+      const words = [...s.querySelectorAll(".word")];
+      const n = words.length;
+      const frac = (curTime - t0) / (t1 - t0);
+      const idx = Math.floor(frac * n);
+      words.forEach((w, i) => {
+        w.classList.remove("played","current");
+        if (i < idx) w.classList.add("played");
+        else if (i === idx) w.classList.add("current");
+      });
+    }
+  });
+}
+
+function togglePlay(){
+  playing = !playing;
+  const playIcon = playing
+    ? `<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>`
+    : `<path d="M8 5v14l11-7z"/>`;
+  if ($("#miniPlayIcon")) $("#miniPlayIcon").innerHTML = playIcon;
+  if ($("#fspPlayIcon")) $("#fspPlayIcon").innerHTML = playIcon;
+}
+
+// tick
+setInterval(() => {
+  if (!playing) return;
+  setTime(curTime + 0.25);
+  if (curTime >= TOTAL_DUR) setTime(0);
+}, 250);
+
+// ========== TWEAKS ==========
+function renderTweaks(){
+  $("#tweaks").innerHTML = `
+    <h4>Tweaks <em>· in-session</em></h4>
+    <div class="grp">
+      <div class="lbl">Theme <span class="v" id="tv-theme">Light</span></div>
+      <div class="seg" id="tw-theme">
+        <button data-v="light" class="on">Light</button>
+        <button data-v="dark">Dark</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">Density <span class="v" id="tv-density">Comfortable</span></div>
+      <div class="seg" id="tw-density">
+        <button data-v="compact">Compact</button>
+        <button data-v="normal">Normal</button>
+        <button data-v="comfortable" class="on">Roomy</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">Reading font <span class="v" id="tv-font">Serif</span></div>
+      <div class="seg" id="tw-font">
+        <button data-v="serif" class="on">Serif</button>
+        <button data-v="sans">Sans</button>
+        <button data-v="display">Display</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">Reading size <span class="v num" id="tv-size">22px</span></div>
+      <input type="range" id="tw-size" class="rng" min="16" max="28" step="1" value="22"/>
+    </div>
+    <div class="grp">
+      <div class="lbl">Highlight <span class="v" id="tv-hl">Word wipe</span></div>
+      <div class="seg" id="tw-hl">
+        <button data-v="word" class="on">Word</button>
+        <button data-v="sentence">Block</button>
+        <button data-v="scale">Scale</button>
+        <button data-v="gutter">Gutter</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="lbl">Voice <span class="v" id="tv-voice">Ember</span></div>
+      <div class="seg" id="tw-voice">
+        ${["Alloy","Echo","Fable","Onyx","Ember","Shimmer"].map(v=>`<button data-v="${v}" class="${v==='Ember'?'on':''}">${v}</button>`).join("")}
+      </div>
+    </div>
+  `;
+
+  function hook(grpId, apply){
+    const g = $("#"+grpId);
+    g.querySelectorAll("button").forEach(b => {
+      b.onclick = () => {
+        g.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+        b.classList.add("on");
+        apply(b.dataset.v);
+      };
+    });
+  }
+  hook("tw-theme", v => { setTheme(v); $("#tv-theme").textContent = v[0].toUpperCase()+v.slice(1); });
+  hook("tw-density", v => { document.documentElement.dataset.density = v; $("#tv-density").textContent = v[0].toUpperCase()+v.slice(1); });
+  hook("tw-font", v => {
+    $("#tv-font").textContent = v[0].toUpperCase()+v.slice(1);
+    const map = { serif: 'var(--font-serif)', sans: 'var(--font-sans)', display: '"Newsreader", serif' };
+    document.querySelectorAll(".reading-frame").forEach(f => f.style.fontFamily = map[v]);
+    if (v === "display") {
+      document.querySelectorAll(".reading-frame").forEach(f => f.style.fontVariationSettings = '"opsz" 72');
+    } else {
+      document.querySelectorAll(".reading-frame").forEach(f => f.style.fontVariationSettings = '"opsz" 16');
+    }
+  });
+  $("#tw-size").oninput = (e) => {
+    const v = e.target.value;
+    document.documentElement.style.setProperty('--reading-size', v+'px');
+    $("#tv-size").textContent = v+"px";
+  };
+  hook("tw-hl", v => {
+    document.documentElement.dataset.hl = v;
+    $("#tv-hl").textContent = { word:"Word wipe", sentence:"Block fill", scale:"Scale", gutter:"Gutter" }[v];
+  });
+  hook("tw-voice", v => { $("#tv-voice").textContent = v; });
+}
+
+// ========== Theme ==========
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  $("#themeLabel").textContent = t === "dark" ? "Light" : "Dark";
+  const icon = t === "dark"
+    ? `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>`
+    : `<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>`;
+  $("#themeIcon").innerHTML = icon;
+}
+
+// ========== Navigation ==========
+function goto(screen){
+  $$(".screen").forEach(s => s.classList.remove("active"));
+  $("#screen-"+screen).classList.add("active");
+  $$(".rail .nav").forEach(n => n.classList.remove("active"));
+  const target = document.querySelector(`.rail .nav[data-goto="${screen}"]`);
+  if (target) target.classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+// ========== Init ==========
+document.documentElement.dataset.theme = "light";
+document.documentElement.dataset.hl = "word";
+document.documentElement.dataset.density = "comfortable";
+
+renderLibrary();
+renderUpload();
+renderDetail();
+renderPlayer();
+renderMini();
+renderFSP();
+renderTweaks();
+
+// Wire up
+document.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-goto]");
+  if (g) { e.preventDefault(); goto(g.dataset.goto); }
+});
+
+$("#themeToggle").onclick = () => {
+  const cur = document.documentElement.dataset.theme;
+  setTheme(cur === "dark" ? "light" : "dark");
+  // sync tweaks seg
+  $$("#tw-theme button").forEach(b => b.classList.toggle("on", b.dataset.v === document.documentElement.dataset.theme));
+  $("#tv-theme").textContent = document.documentElement.dataset.theme[0].toUpperCase()+document.documentElement.dataset.theme.slice(1);
+};
+$("#tweakToggle").onclick = () => {
+  $("#tweaks").classList.toggle("on");
+};
+$("#miniPlay").onclick = togglePlay;
+$("#miniExpand").onclick = openFSP;
+$("#miniTrack").onclick = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const f = (e.clientX - r.left) / r.width;
+  setTime(f * TOTAL_DUR);
+};
+
+// Click sentence to seek
+document.addEventListener("click", (e) => {
+  const s = e.target.closest(".sent");
+  if (s && s.dataset.t0) {
+    setTime(parseFloat(s.dataset.t0));
+    if (!playing) togglePlay();
+  }
+});
+
+// Edit mode hook
+window.addEventListener("message", (e) => {
+  if (e.data?.type === "__activate_edit_mode") $("#tweaks").classList.add("on");
+  if (e.data?.type === "__deactivate_edit_mode") $("#tweaks").classList.remove("on");
+});
+window.parent.postMessage({type:"__edit_mode_available"}, "*");
+
+setTime(38.2);
+
+</script>
+</body>
+</html>
