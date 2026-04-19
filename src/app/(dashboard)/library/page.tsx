@@ -169,6 +169,8 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(searchParams.get('upload') === '1');
 
+  const openUpload = () => { setShowUpload(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
   useEffect(() => {
     fetch('/api/v1/books')
       .then((r) => r.json())
@@ -197,7 +199,7 @@ export default function LibraryPage() {
       <div className="desktop-only" style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 className="serif" style={{ fontSize: 28, letterSpacing: '-0.02em' }}>Your Library</h1>
-          <button className="btn" onClick={() => setShowUpload(true)}>
+          <button className="btn" onClick={openUpload}>
             <PlusIcon /> Upload EPUB
           </button>
         </div>
@@ -234,7 +236,7 @@ export default function LibraryPage() {
           <p className="meta" style={{ marginBottom: 24 }}>
             Upload an EPUB to create your first audiobook.
           </p>
-          <button className="btn primary" onClick={() => setShowUpload(true)}>
+          <button className="btn primary" onClick={openUpload}>
             <PlusIcon /> Upload EPUB
           </button>
         </div>
@@ -407,7 +409,7 @@ export default function LibraryPage() {
       <div className="mobile-only" style={{ position: 'fixed', bottom: 94, right: 16, zIndex: 30 }}>
         <button
           className="btn primary"
-          onClick={() => setShowUpload(true)}
+          onClick={openUpload}
           style={{ borderRadius: 8, padding: '12px 16px', boxShadow: '0 4px 12px #0003' }}
         >
           <PlusIcon /> Upload

@@ -106,27 +106,25 @@ export async function POST(
   // Create audio jobs and dispatch Inngest events
   const createdJobs: { jobId: string; chapterId: string; chapterNumber: number }[] = [];
 
-  await db.transaction(async (tx) => {
-    for (const chapter of targetChapters) {
-      const [job] = await tx
-        .insert(audioJobs)
-        .values({
-          chapterId: chapter.id,
-          voice: body.voice,
-          status: 'queued',
-          attempts: 0,
-        })
-        .returning();
+  for (const chapter of targetChapters) {
+    const [job] = await db
+      .insert(audioJobs)
+      .values({
+        chapterId: chapter.id,
+        voice: body.voice,
+        status: 'queued',
+        attempts: 0,
+      })
+      .returning();
 
-      if (job) {
-        createdJobs.push({
-          jobId: job.id,
-          chapterId: chapter.id,
-          chapterNumber: chapter.chapterNumber,
-        });
-      }
+    if (job) {
+      createdJobs.push({
+        jobId: job.id,
+        chapterId: chapter.id,
+        chapterNumber: chapter.chapterNumber,
+      });
     }
-  });
+  }
 
   // Send Inngest events for each job
   for (const job of createdJobs) {

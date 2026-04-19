@@ -122,40 +122,35 @@ export async function POST(req: Request) {
   const { metadata, coverR2Key, chapters: chapterDrafts } = parseResult;
   const totalWordCount = chapterDrafts.reduce((sum, ch) => sum + ch.wordCount, 0);
 
-  // Insert book and chapters in a transaction
+  // Insert book and chapters (neon-http doesn't support transactions)
   try {
-    await db.transaction(async (tx) => {
-      const [insertedBook] = await tx
-        .insert(books)
-        .values({
-          id: bookId,
-          userId,
-          title: metadata.title,
-          author: metadata.author,
-          description: metadata.description,
-          coverR2Key,
-          epubR2Key,
-          language: metadata.language,
-          contentHash,
-          totalChapters: chapterDrafts.length,
-          totalWordCount,
-        })
-        .returning();
-
-      if (chapterDrafts.length > 0) {
-        await tx.insert(chapters).values(
-          chapterDrafts.map((ch) => ({
-            bookId,
-            chapterNumber: ch.chapterNumber,
-            title: ch.title,
-            rawText: ch.rawText,
-            wordCount: ch.wordCount,
-          })),
-        );
-      }
+    await db.insert(books).values({
+      id: bookId,
+      userId,
+      title: metadata.title,
+      author: metadata.author,
+      description: metadata.description,
+      coverR2Key,
+      epubR2Key,
+      language: metadata.language,
+      contentHash,
+      totalChapters: chapterDrafts.length,
+      totalWordCount,
     });
+
+    if (chapterDrafts.length > 0) {
+      await db.insert(chapters).values(
+        chapterDrafts.map((ch) => ({
+          bookId,
+          chapterNumber: ch.chapterNumber,
+          title: ch.title,
+          rawText: ch.rawText,
+          wordCount: ch.wordCount,
+        })),
+      );
+    }
   } catch (err) {
-    console.error('DB transaction error:', err);
+    console.error('DB insert error:', err);
     return NextResponse.json(
       { error: { code: 'DB_ERROR', message: 'Failed to save book to database.' } },
       { status: 500 },
