@@ -189,6 +189,7 @@ export default function PlayerPage({
 
   /* Load saved playback position */
   useEffect(() => {
+    if (!bookId) return;
     async function loadPosition() {
       try {
         const res = await fetch(`/api/v1/books/${bookId}/playback`);

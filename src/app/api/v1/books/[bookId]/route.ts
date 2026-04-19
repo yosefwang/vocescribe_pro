@@ -20,6 +20,14 @@ export async function GET(
 
   const { bookId } = await params;
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(bookId)) {
+    return NextResponse.json(
+      { error: { code: 'NOT_FOUND', message: 'Book not found.' } },
+      { status: 404 },
+    );
+  }
+
   const [book] = await db.select().from(books).where(eq(books.id, bookId)).limit(1);
 
   if (!book) {
