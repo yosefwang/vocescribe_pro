@@ -19,8 +19,9 @@ interface ChapterInfo {
   id: string;
   chapterNumber: number;
   title: string;
-  status: string;
+  audioStatus: string;
   duration: number | null;
+  latestJob: { id: string; status: string; durationSec: number | null } | null;
 }
 
 interface BookInfo {
@@ -157,20 +158,20 @@ export default function PlayerPage({
         // Fetch audio stream URL
         const audioIdRes = await fetch(`/api/v1/books/${bookId}/chapters/${chNum}`);
         const audioIdData = await audioIdRes.json();
-        const audioId = audioIdData.chapter?.audioJobId || audioIdData.audioJobId;
+        const audioId = audioIdData.audioJob?.id;
 
         if (audioId) {
           const [streamRes, alignRes] = await Promise.all([
-            fetch(`/api/v1/audio/${audioId}/stream`),
+            fetch(`/api/v1/audio/${audioId}/stream`, { redirect: 'follow' }),
             fetch(`/api/v1/audio/${audioId}/alignment`),
           ]);
           if (streamRes.ok) {
-            const streamData = await streamRes.json();
-            setAudioUrl(streamData.url || streamRes.url);
+            setAudioUrl(streamRes.url);
           }
           if (alignRes.ok) {
             const alignData = await alignRes.json();
-            setSentences(alignData.sentences ?? alignData.alignment ?? []);
+            const sentences = alignData.alignment?.sentences ?? alignData.sentences ?? alignData.alignment ?? [];
+            setSentences(sentences);
           }
         }
       } catch {

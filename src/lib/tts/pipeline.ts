@@ -8,7 +8,7 @@ import { chunkSentences, type Sentence } from './chunker';
 import { distributeTimestamps, applyChunkOffset, type AlignmentJson, type AlignedSentence } from './alignment';
 import { uploadObject } from '../storage/r2';
 import { db } from '../db/client';
-import { chapters, audioJobs } from '../db/schema';
+import { chapters, audioJobs, books } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 const execFileAsync = promisify(execFile);
@@ -116,8 +116,8 @@ export async function processChapter(jobId: string): Promise<void> {
 
     // Step 7: Upload to R2
     // Fetch book for userId
-    const [book] = await db.select().from(require('../db/schema').books).where(
-      eq(require('../db/schema').books.id, chapter.bookId)
+    const [book] = await db.select().from(books).where(
+      eq(books.id, chapter.bookId)
     );
 
     const audioKey = `${book!.userId}/${book!.id}/ch${chapter.chapterNumber}.mp3`;

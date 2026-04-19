@@ -5,10 +5,13 @@ import { db } from '@/lib/db/client';
 import { chapters, audioJobs, books } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { processChapter } from '@/lib/tts/pipeline';
 import { z } from 'zod';
 
+const GEMINI_VOICES = ['Aoede', 'Charon', 'Kore', 'Orus', 'Puck', 'Zephyr'] as const;
+
 const generateSingleSchema = z.object({
-  voice: z.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).default('alloy'),
+  voice: z.enum(GEMINI_VOICES).default('Kore'),
   overwrite_existing: z.boolean().default(false),
 });
 
@@ -108,16 +111,30 @@ export async function POST(
     );
   }
 
-  // Send Inngest event
-  await inngest.send({
-    name: 'audio/chapter.generate',
-    data: {
-      audioJobId: job.id,
-      chapterId,
-      userId,
-      voice: body.voice,
-    },
-  });
+  // Try Inngest first; fall back to direct processing
+  let inngestOk = false;
+  try {
+    await inngest.send({
+      name: 'audio/chapter.generate',
+      data: {
+        audioJobId: job.id,
+        chapterId,
+        userId,
+        voice: body.voice,
+      },
+    });
+    inngestOk = true;
+  } catch (err) {
+    console.warn('Inngest unavailable, processing directly:', err);
+  }
+
+  if (!inngestOk) {
+    try {
+      await processChapter(job.id);
+    } catch (err) {
+      console.error(`Direct processing failed for job ${job.id}:`, err);
+    }
+  }
 
   // Update book status to processing if not already
   if (book.status !== 'processing') {

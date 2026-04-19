@@ -5,10 +5,13 @@ import { db } from '@/lib/db/client';
 import { books, chapters, audioJobs } from '@/lib/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { processChapter } from '@/lib/tts/pipeline';
 import { z } from 'zod';
 
+const GEMINI_VOICES = ['Aoede', 'Charon', 'Kore', 'Orus', 'Puck', 'Zephyr'] as const;
+
 const generateBodySchema = z.object({
-  voice: z.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).default('alloy'),
+  voice: z.enum(GEMINI_VOICES).default('Kore'),
   chapters: z.array(z.number().int().positive()).optional(),
   overwrite_existing: z.boolean().default(false),
 });
@@ -84,26 +87,56 @@ export async function POST(
   }
 
   // Check for active generation jobs unless overwrite is requested
+  // Stale check: mark queued/running jobs older than 10 minutes as failed
   if (!body.overwrite_existing) {
     const chapterIds = targetChapters.map((ch) => ch.id);
     const activeJobs = await db
-      .select({ id: audioJobs.id, status: audioJobs.status, chapterId: audioJobs.chapterId })
+      .select({ id: audioJobs.id, status: audioJobs.status, chapterId: audioJobs.chapterId, createdAt: audioJobs.createdAt })
       .from(audioJobs)
       .where(inArray(audioJobs.chapterId, chapterIds));
+
+    const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+    const staleJobs = activeJobs.filter(
+      (job) =>
+        (job.status === 'queued' || job.status === 'running') &&
+        new Date(job.createdAt) < staleThreshold,
+    );
+
+    // Mark stale jobs as failed
+    for (const sj of staleJobs) {
+      await db
+        .update(audioJobs)
+        .set({ status: 'failed', errorMessage: 'Job timed out.' })
+        .where(eq(audioJobs.id, sj.id));
+    }
 
     const hasActive = activeJobs.some(
       (job) => job.status === 'queued' || job.status === 'running',
     );
 
-    if (hasActive) {
+    if (hasActive && staleJobs.length === 0) {
       return NextResponse.json(
-        { error: { code: 'GENERATION_IN_PROGRESS', message: 'Audio generation is already in progress for some chapters. Use overwrite_existing=true to restart.' } },
+        { error: { code: 'GENERATION_IN_PROGRESS', message: 'Audio generation is already in progress. Try again in a few minutes.' } },
         { status: 409 },
       );
     }
+  } else {
+    // overwrite: mark existing queued/running jobs for these chapters as failed
+    const chapterIds = targetChapters.map((ch) => ch.id);
+    const existing = await db
+      .select({ id: audioJobs.id, status: audioJobs.status })
+      .from(audioJobs)
+      .where(inArray(audioJobs.chapterId, chapterIds));
+    const active = existing.filter((j) => j.status === 'queued' || j.status === 'running');
+    for (const j of active) {
+      await db
+        .update(audioJobs)
+        .set({ status: 'failed', errorMessage: 'Superseded by new generation request.' })
+        .where(eq(audioJobs.id, j.id));
+    }
   }
 
-  // Create audio jobs and dispatch Inngest events
+  // Create audio jobs
   const createdJobs: { jobId: string; chapterId: string; chapterNumber: number }[] = [];
 
   for (const chapter of targetChapters) {
@@ -126,30 +159,61 @@ export async function POST(
     }
   }
 
-  // Send Inngest events for each job
-  for (const job of createdJobs) {
-    await inngest.send({
-      name: 'audio/chapter.generate',
-      data: {
-        audioJobId: job.jobId,
-        chapterId: job.chapterId,
-        userId,
-        voice: body.voice,
-      },
-    });
-  }
-
   // Update book status to processing
   await db
     .update(books)
     .set({ status: 'processing', updatedAt: new Date() })
     .where(eq(books.id, bookId));
 
+  // Try Inngest first; fall back to direct processing
+  let inngestOk = false;
+  try {
+    for (const job of createdJobs) {
+      await inngest.send({
+        name: 'audio/chapter.generate',
+        data: {
+          audioJobId: job.jobId,
+          chapterId: job.chapterId,
+          userId,
+          voice: body.voice,
+        },
+      });
+    }
+    inngestOk = true;
+  } catch (err) {
+    console.warn('Inngest unavailable, processing directly:', err);
+  }
+
+  // Direct processing fallback: process each job inline
+  if (!inngestOk) {
+    for (const job of createdJobs) {
+      try {
+        await processChapter(job.jobId);
+      } catch (err) {
+        console.error(`Direct processing failed for job ${job.jobId}:`, err);
+      }
+    }
+
+    // Check if all chapters are done to update book status
+    const allJobs = await db
+      .select({ status: audioJobs.status })
+      .from(audioJobs)
+      .where(inArray(audioJobs.chapterId, createdJobs.map((j) => j.chapterId)));
+    const allDone = allJobs.length > 0 && allJobs.every((j) => j.status === 'done');
+    if (allDone) {
+      await db
+        .update(books)
+        .set({ status: 'ready', updatedAt: new Date() })
+        .where(eq(books.id, bookId));
+    }
+  }
+
   return NextResponse.json(
     {
-      message: 'Generation started.',
+      message: inngestOk ? 'Generation queued.' : 'Generation complete.',
       jobs: createdJobs,
       totalJobs: createdJobs.length,
+      directProcessing: !inngestOk,
     },
     { status: 202 },
   );

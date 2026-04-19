@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, integer, jsonb, bigint, real, timestamp, index, check, uniqueIndex, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, integer, jsonb, bigint, real, timestamp, index, check, uniqueIndex, pgEnum, varchar } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -42,13 +42,12 @@ export const chapters = pgTable('chapters', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ idxChaptersBookNumber: uniqueIndex('idx_chapters_book_number').on(t.bookId, t.chapterNumber) }));
 
-export const voiceEnum = pgEnum('voice', ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']);
 export const jobStatus = pgEnum('job_status', ['queued', 'running', 'done', 'failed']);
 
 export const audioJobs = pgTable('audio_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
   chapterId: uuid('chapter_id').notNull().references(() => chapters.id, { onDelete: 'cascade' }),
-  voice: voiceEnum('voice').default('alloy').notNull(),
+  voice: text('voice').default('Kore').notNull(),
   status: jobStatus('status').default('queued').notNull(),
   audioR2Key: text('audio_r2_key'),
   alignmentR2Key: text('alignment_r2_key'),

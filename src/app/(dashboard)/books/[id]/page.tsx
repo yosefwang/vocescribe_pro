@@ -14,7 +14,7 @@ interface Book {
   title: string;
   author: string | null;
   coverUrl: string | null;
-  status: 'uploaded' | 'processing' | 'completed' | 'failed';
+  status: 'uploaded' | 'processing' | 'ready' | 'failed';
   totalChapters: number;
   completedChapters: number;
   voice: string | null;
@@ -25,18 +25,18 @@ interface Chapter {
   id: string;
   chapterNumber: number;
   title: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  audioUrl: string | null;
+  audioStatus: string;
   duration: number | null;
+  latestJob: { id: string; status: string; durationSec: number | null } | null;
 }
 
 const VOICES = [
-  { id: 'alloy', label: 'Alloy' },
-  { id: 'echo', label: 'Echo' },
-  { id: 'fable', label: 'Fable' },
-  { id: 'onyx', label: 'Onyx' },
-  { id: 'nova', label: 'Nova' },
-  { id: 'shimmer', label: 'Shimmer' },
+  { id: 'Aoede', label: 'Aoede' },
+  { id: 'Charon', label: 'Charon' },
+  { id: 'Kore', label: 'Kore' },
+  { id: 'Orus', label: 'Orus' },
+  { id: 'Puck', label: 'Puck' },
+  { id: 'Zephyr', label: 'Zephyr' },
 ];
 
 const COVER_COLORS = [
@@ -54,15 +54,18 @@ function coverColor(id: string): string {
 
 function StatusPill({ status }: { status: string }) {
   const cls =
-    status === 'completed' ? 'done' :
-    status === 'processing' ? 'running' :
-    status === 'failed' ? 'failed' : '';
+    status === 'done' || status === 'ready' ? 'done' :
+    status === 'running' || status === 'processing' ? 'running' :
+    status === 'failed' ? 'failed' :
+    status === 'queued' ? 'running' : '';
 
   const label =
-    status === 'completed' ? 'Ready' :
-    status === 'processing' ? 'Generating' :
+    status === 'done' || status === 'ready' ? 'Ready' :
+    status === 'running' || status === 'processing' ? 'Generating' :
     status === 'failed' ? 'Failed' :
-    status === 'pending' ? 'Pending' : 'Uploaded';
+    status === 'queued' ? 'Queued' :
+    status === 'not_started' ? 'Pending' :
+    status === 'uploaded' ? 'Uploaded' : status;
 
   return (
     <span className={`st-pill ${cls}`}>
@@ -100,8 +103,9 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVoice, setSelectedVoice] = useState('nova');
+  const [selectedVoice, setSelectedVoice] = useState('Kore');
   const [generating, setGenerating] = useState(false);
+  const [generatingChapters, setGeneratingChapters] = useState<Set<number>>(new Set());
   const [pollTimer, setPollTimer] = useState<ReturnType<typeof setInterval> | null>(null);
 
   /* Fetch book data */
@@ -119,7 +123,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
         setBook(bookData.book ?? bookData);
         setChapters(chaptersData.chapters ?? []);
         if (bookData.voice || (bookData.book && bookData.book.voice)) {
-          setSelectedVoice((bookData.voice || bookData.book.voice) ?? 'nova');
+          setSelectedVoice((bookData.voice || bookData.book.voice) ?? 'Kore');
         }
       } catch {
         /* book not found */
@@ -146,10 +150,11 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
         ]);
         const bookData = await bookRes.json();
         const chaptersData = await chaptersRes.json();
-        setBook(bookData.book ?? bookData);
+        const b = bookData.book ?? bookData;
+        setBook(b);
         setChapters(chaptersData.chapters ?? []);
 
-        if (bookData.status === 'completed' || bookData.status === 'failed') {
+        if (b.status === 'ready' || b.status === 'uploaded' || b.status === 'failed') {
           clearInterval(timer);
           setGenerating(false);
           setPollTimer(null);
@@ -178,6 +183,31 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  const handleGenerateChapter = async (chapterNumber: number) => {
+    setGeneratingChapters((prev) => new Set(prev).add(chapterNumber));
+    try {
+      const res = await fetch(`/api/v1/books/${id}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice: selectedVoice, chapters: [chapterNumber], overwrite_existing: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error?.message || 'Failed to generate chapter.');
+      } else {
+        startPolling();
+      }
+    } catch {
+      alert('Failed to generate chapter. Please try again.');
+    } finally {
+      setGeneratingChapters((prev) => {
+        const next = new Set(prev);
+        next.delete(chapterNumber);
+        return next;
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ maxWidth: 1080, margin: '0 auto', paddingTop: 32 }}>
@@ -195,7 +225,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const isProcessing = book.status === 'processing' || generating;
+  const isProcessing = generating;
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', paddingTop: 32 }}>
@@ -279,7 +309,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {/* Generate button */}
-            {book.status !== 'completed' && (
+            {book.status !== 'ready' && (
               <button
                 className={`btn xl gold`}
                 onClick={handleGenerate}
@@ -298,14 +328,14 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                     <svg className="icn" viewBox="0 0 24 24">
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
-                    Generate Audiobook
+                    Generate All Chapters
                   </>
                 )}
               </button>
             )}
 
-            {/* Listen button when completed */}
-            {book.status === 'completed' && (
+            {/* Listen button when ready */}
+            {book.status === 'ready' && (
               <Link href={`/player/${book.id}/1`} style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 32 }}>
                 <button className="btn xl primary">
                   <svg className="icn" viewBox="0 0 24 24">
@@ -363,16 +393,38 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                         {ch.title || `Chapter ${ch.chapterNumber}`}
                       </span>
                     </div>
-                    <span className="meta">{formatDuration(ch.duration)}</span>
-                    {ch.status === 'completed' ? (
+                    <span className="meta">{formatDuration(ch.latestJob?.durationSec ?? null)}</span>
+                    {ch.audioStatus === 'done' ? (
                       <Link href={`/player/${book.id}/${ch.chapterNumber}`} className="btn sm ghost">
                         <svg className="icn sm" viewBox="0 0 24 24">
                           <polygon points="5 3 19 12 5 21 5 3" />
                         </svg>
                         Play
                       </Link>
+                    ) : ch.audioStatus === 'failed' ? (
+                      <button
+                        className="btn sm ghost"
+                        disabled={generatingChapters.has(ch.chapterNumber)}
+                        onClick={() => handleGenerateChapter(ch.chapterNumber)}
+                      >
+                        {generatingChapters.has(ch.chapterNumber) ? 'Retrying...' : 'Retry'}
+                      </button>
+                    ) : (ch.audioStatus === 'queued' || ch.audioStatus === 'running') ? (
+                      <button
+                        className="btn sm ghost"
+                        disabled={generatingChapters.has(ch.chapterNumber)}
+                        onClick={() => handleGenerateChapter(ch.chapterNumber)}
+                      >
+                        {generatingChapters.has(ch.chapterNumber) ? 'Restarting...' : 'Retry'}
+                      </button>
                     ) : (
-                      <StatusPill status={ch.status} />
+                      <button
+                        className="btn sm ghost"
+                        disabled={generatingChapters.has(ch.chapterNumber)}
+                        onClick={() => handleGenerateChapter(ch.chapterNumber)}
+                      >
+                        {generatingChapters.has(ch.chapterNumber) ? 'Queuing...' : 'Generate'}
+                      </button>
                     )}
                   </div>
                 ))}
@@ -431,8 +483,8 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Action button */}
         <div style={{ marginBottom: 24 }}>
-          {book.status === 'completed' ? (
-            <Link href={`/player/${book.id}/1}`} style={{ textDecoration: 'none', display: 'block' }}>
+          {book.status === 'ready' ? (
+            <Link href={`/player/${book.id}/1`} style={{ textDecoration: 'none', display: 'block' }}>
               <button className="btn primary xl" style={{ width: '100%', justifyContent: 'center' }}>
                 Start Listening
               </button>
@@ -444,7 +496,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
               onClick={handleGenerate}
               disabled={isProcessing}
             >
-              {isProcessing ? 'Generating...' : 'Generate Audiobook'}
+              {isProcessing ? 'Generating...' : 'Generate All Chapters'}
             </button>
           )}
         </div>
@@ -493,12 +545,18 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                     {ch.title || `Chapter ${ch.chapterNumber}`}
                   </span>
                 </div>
-                {ch.status === 'completed' ? (
+                {ch.audioStatus === 'done' ? (
                   <Link href={`/player/${book.id}/${ch.chapterNumber}`} className="btn sm ghost">
                     Play
                   </Link>
                 ) : (
-                  <StatusPill status={ch.status} />
+                  <button
+                    className="btn sm ghost"
+                    disabled={generatingChapters.has(ch.chapterNumber)}
+                    onClick={() => handleGenerateChapter(ch.chapterNumber)}
+                  >
+                    {generatingChapters.has(ch.chapterNumber) ? '...' : (ch.audioStatus === 'failed' || ch.audioStatus === 'queued' || ch.audioStatus === 'running') ? 'Retry' : 'Gen'}
+                  </button>
                 )}
               </div>
             ))}
