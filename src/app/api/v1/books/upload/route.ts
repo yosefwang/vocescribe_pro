@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db/client';
-import { books, chapters } from '@/lib/db/schema';
+import { books, chapters, users } from '@/lib/db/schema';
 import { uploadObject } from '@/lib/storage/r2';
 import { parseEpub } from '@/lib/epub/parser';
 import { eq, desc, sql } from 'drizzle-orm';
@@ -19,6 +19,12 @@ export async function POST(req: Request) {
       { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
       { status: 401 },
     );
+  }
+
+  // Ensure user exists in DB (in case webhook hasn't fired yet)
+  const [existingUser] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!existingUser) {
+    await db.insert(users).values({ id: userId, email: 'pending@sync' });
   }
 
   let formData: FormData;
