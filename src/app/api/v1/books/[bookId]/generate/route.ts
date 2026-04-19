@@ -188,9 +188,11 @@ export async function POST(
   if (!inngestOk) {
     for (const job of createdJobs) {
       try {
+        console.log(`[generate] Processing chapter job ${job.jobId} directly...`);
         await processChapter(job.jobId);
-      } catch (err) {
-        console.error(`Direct processing failed for job ${job.jobId}:`, err);
+        console.log(`[generate] Job ${job.jobId} completed.`);
+      } catch (err: any) {
+        console.error(`[generate] Job ${job.jobId} failed:`, err?.message ?? err);
       }
     }
 

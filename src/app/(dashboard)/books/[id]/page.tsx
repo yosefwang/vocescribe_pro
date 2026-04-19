@@ -191,14 +191,25 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice: selectedVoice, chapters: [chapterNumber], overwrite_existing: true }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         alert(data.error?.message || 'Failed to generate chapter.');
+      } else if (data.directProcessing) {
+        // Direct processing finished — refresh chapter list to see result
+        const chaptersRes = await fetch(`/api/v1/books/${id}/chapters`);
+        const chaptersData = await chaptersRes.json();
+        setChapters(chaptersData.chapters ?? []);
+        const bookRes = await fetch(`/api/v1/books/${id}`);
+        const bookData = await bookRes.json();
+        setBook(bookData.book ?? bookData);
+        if (data.jobs?.some((j: any) => j.status === 'failed')) {
+          alert('Generation failed. Check that OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_TTS_MODEL are set in Vercel env vars.');
+        }
       } else {
         startPolling();
       }
-    } catch {
-      alert('Failed to generate chapter. Please try again.');
+    } catch (err) {
+      alert('Network error — failed to reach the server.');
     } finally {
       setGeneratingChapters((prev) => {
         const next = new Set(prev);
