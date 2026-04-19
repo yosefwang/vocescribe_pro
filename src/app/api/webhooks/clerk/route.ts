@@ -20,9 +20,9 @@ export async function POST(req: Request) {
 
   const body = await req.text();
 
-  const webhookSecret = process.env.CLERK_SECRET_KEY;
+  const webhookSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
   if (!webhookSecret) {
-    console.error('CLERK_SECRET_KEY is not set.');
+    console.error('CLERK_WEBHOOK_SIGNING_SECRET is not set.');
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Webhook secret not configured.' } },
       { status: 500 },
