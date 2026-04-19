@@ -88,11 +88,14 @@ function formatDate(iso: string): string {
 /* ------------------------------------------------------------------ */
 /*  Page component                                                     */
 /* ------------------------------------------------------------------ */
-export default function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function BookDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
   const router = useRouter();
   const [id, setId] = useState<string>('');
 
-  useEffect(() => { params.then((p) => setId(p.id)); }, [params]);
+  useEffect(() => {
+    if (params instanceof Promise) { params.then((p) => setId(p.id)); }
+    else { setId(params.id); }
+  }, [params]);
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);

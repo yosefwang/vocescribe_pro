@@ -109,14 +109,17 @@ function formatTime(s: number): string {
 export default function PlayerPage({
   params,
 }: {
-  params: Promise<{ bookId: string; chapterNumber: string }>;
+  params: Promise<{ bookId: string; chapterNumber: string }> | { bookId: string; chapterNumber: string };
 }) {
   const router = useRouter();
   const [bookId, setBookId] = useState('');
   const [chapterNumber, setChapterNumber] = useState('');
   const chNum = parseInt(chapterNumber, 10);
 
-  useEffect(() => { params.then((p) => { setBookId(p.bookId); setChapterNumber(p.chapterNumber); }); }, [params]);
+  useEffect(() => {
+    if (params instanceof Promise) { params.then((p) => { setBookId(p.bookId); setChapterNumber(p.chapterNumber); }); }
+    else { setBookId(params.bookId); setChapterNumber(params.chapterNumber); }
+  }, [params]);
 
   const [book, setBook] = useState<BookInfo | null>(null);
   const [chapter, setChapter] = useState<ChapterInfo | null>(null);
